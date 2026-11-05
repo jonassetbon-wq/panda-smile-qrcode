@@ -121,6 +121,14 @@ export default [
   "hash": "356fb1531b07d1db8dc3f771b730ce2ca031483c5b468a87b49d60c2e6210ff6"
  },
  {
+  "id": "arnaud",
+  "label": "Arnaud",
+  "fullName": "Arnaud",
+  "admin": false,
+  "salt": "aa32cf62f63073e0",
+  "hash": "16bb83458368c9698f9f5e1d032cee7f440ac33f5ab8b322422db6eb3eea20ec"
+ },
+ {
   "id": "invite-1",
   "label": "Invité 1",
   "fullName": "Invité 1",
