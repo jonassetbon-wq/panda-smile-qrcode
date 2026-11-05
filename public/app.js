@@ -268,7 +268,7 @@ function renderLeads() {
   const s = $('#sort').value;
   rows.sort(s === 'old' ? (a, b) => a.t.localeCompare(b.t) : s === 'name' ? (a, b) => a.nom.localeCompare(b.nom, 'fr') : s === 'dept' ? (a, b) => (a.geo?.deptCode || 'zz').localeCompare(b.geo?.deptCode || 'zz') : (a, b) => b.t.localeCompare(a.t));
   $('#leads-count').textContent = `${rows.length} inscrit${rows.length > 1 ? 's' : ''}${F.period !== 'all' ? ' sur la période' : ''}`;
-  $('#leads').innerHTML = rows.length ? rows.map((l) => `<li><details class="lead"><summary><span class="pdot" style="background:${PROF_COLORS[l.profession] || '#888'}"></span><span class="nm">${esc(l.prenom)} ${esc(l.nom)}</span><span class="when">${frDate(l.t)}</span><span class="sub">${esc(l.profession)} · ${esc(l.cabinet)}</span></summary>
+  $('#leads').innerHTML = rows.length ? rows.map((l) => `<li><details class="lead"><summary><span class="pdot" style="background:${PROF_COLORS[l.profession] || '#888'}"></span><span class="nm">${esc(l.prenom)} ${esc(l.nom)}</span><span class="when">${frDate(l.t)}</span><span class="sub">${esc(l.profession)}${l.cabinet ? ' · ' + esc(l.cabinet) : ''}</span></summary>
     <dl><dt>Téléphone</dt><dd>${esc(l.tel)}</dd><dt>E-mail</dt><dd>${esc(l.email)}</dd><dt>Adresse</dt><dd>${esc(l.adresse)}</dd>${l.geo ? `<dt>Département</dt><dd>${esc(l.geo.deptCode)} · ${esc(l.geo.deptName)}, ${esc(l.geo.region)}</dd>` : ''}<dt>Ambassadeur</dt><dd>${esc(nameOf(l.a))}</dd><dt>Rempli en</dt><dd>${Number.isFinite(l.durationSec) ? l.durationSec + ' s' : '–'}</dd></dl></details></li>`).join('') : '<li class="muted">Aucun inscrit pour ces filtres.</li>';
 }
 
@@ -290,7 +290,7 @@ function renderMap(fit) {
   filtered().leads.filter((l) => l.geo?.lat).forEach((l) => {
     pts.push([l.geo.lat, l.geo.lon]);
     L.circleMarker([l.geo.lat, l.geo.lon], { radius: 8, color: '#0b0f19', weight: 2, fillColor: PROF_COLORS[l.profession] || '#fff', fillOpacity: 0.95 })
-      .bindPopup(`<b>${esc(l.prenom)} ${esc(l.nom)}</b><br>${esc(l.profession)}<br>${esc(l.cabinet)}<br>${esc(l.geo.label || l.adresse)}<br><small>Ambassadeur : ${esc(nameOf(l.a))}</small>`)
+      .bindPopup(`<b>${esc(l.prenom)} ${esc(l.nom)}</b><br>${esc(l.profession)}<br>${l.cabinet ? esc(l.cabinet) + '<br>' : ''}${esc(l.geo.label || l.adresse)}<br><small>Ambassadeur : ${esc(nameOf(l.a))}</small>`)
       .addTo(layer);
   });
   if (fit && pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 12 });

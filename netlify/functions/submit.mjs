@@ -31,7 +31,7 @@ export default async (req) => {
     tel: clean(b.tel, 30),
     email: clean(b.email, 150).toLowerCase(),
   };
-  const missing = Object.entries(lead).filter(([, v]) => !v).map(([k]) => k);
+  const missing = Object.entries(lead).filter(([k, v]) => !v && k !== "cabinet").map(([k]) => k); // cabinet facultatif
   if (missing.length) return json({ error: "Champs manquants", fields: missing }, 400);
   if (!PROFESSIONS.includes(lead.profession)) return json({ error: "Profession inconnue" }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email)) return json({ error: "E-mail invalide", fields: ["email"] }, 400);

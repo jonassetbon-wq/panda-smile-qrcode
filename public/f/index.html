@@ -158,7 +158,7 @@ footer{color:var(--muted);font-size:.8rem;display:flex;flex-direction:column;gap
         </div>
         <div class="msg"></div>
       </div>
-      <div class="field"><label for="cabinet">Nom du cabinet / de la société</label><input id="cabinet" name="cabinet" autocomplete="organization" placeholder="Cabinet du Sourire" required><div class="msg"></div></div>
+      <div class="field"><label for="cabinet">Nom du cabinet / de la société <span class="opt">(facultatif)</span></label><input id="cabinet" name="cabinet" autocomplete="organization" placeholder="Cabinet du Sourire"><div class="msg"></div></div>
       <div class="field"><label for="adresse">Adresse du cabinet</label><div class="ac"><input id="adresse" name="adresse" autocomplete="off" placeholder="12 rue des Bambous, 89000 Auxerre" required role="combobox" aria-expanded="false" aria-controls="ac-list" aria-autocomplete="list"><ul id="ac-list" class="ac-list" role="listbox" hidden></ul></div><div class="msg"></div></div>
       <div class="field"><label for="tel">Téléphone</label><input id="tel" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78" required><div class="msg"></div></div>
       <div class="field"><label for="email">E-mail</label><input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="contact@cabinet.fr" required><div class="msg"></div></div>
@@ -224,7 +224,8 @@ const labels={prenom:'Prénom',nom:'Nom',profession:'Profession',cabinet:'Cabine
 function check(el){
   const f=el.closest('.field');if(!f)return true;const m=f.querySelector('.msg');let t='';
   const v=el.value.trim();
-  if(!v)t=el.tagName==='SELECT'?'Choisissez une profession dans la liste.':'Ce champ est obligatoire.';
+  if(!v&&!el.required)t='';
+  else if(!v)t=el.tagName==='SELECT'?'Choisissez une profession dans la liste.':'Ce champ est obligatoire.';
   else if(el.type==='email'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))t='Vérifiez l’adresse e-mail (ex. nom@cabinet.fr).';
   else if(el.type==='tel'&&v.replace(/\D/g,'').length<9)t='Le numéro semble incomplet.';
   f.classList.toggle('err',!!t);m.textContent=t;return !t;
@@ -251,7 +252,7 @@ form.addEventListener('submit',async e=>{
   }catch(err){sm.textContent='L’envoi n’a pas abouti. Vérifiez votre connexion puis réessayez.';btn.disabled=false;btn.textContent='Je profite des 3 mois offerts';return}
   btn.disabled=false;btn.textContent='Je profite des 3 mois offerts';
   recap.innerHTML='';
-  for(const k in labels){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=labels[k];dd.textContent=data[k];recap.append(dt,dd)}
+  for(const k in labels){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=labels[k];dd.textContent=data[k]||'–';recap.append(dt,dd)}
   form.hidden=true;done.hidden=false;window.scrollTo({top:0,behavior:'smooth'});
 });
 document.getElementById('again').addEventListener('click',()=>{startedAt=null;sent=false;form.reset();document.getElementById('rgpd').checked=false;done.hidden=true;form.hidden=false});
