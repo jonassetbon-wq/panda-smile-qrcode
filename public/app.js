@@ -127,7 +127,7 @@ function dedupe(d) {
   });
   return d;
 }
-const PATIENTS = { '<20': 'Moins de 20', '20-50': '20 à 50', '50-100': '50 à 100', '100-200': '100 à 200', '>200': 'Plus de 200' };
+const PATIENTS = { '<20': 'Moins de 20 / an', '20-50': '20 à 50 / an', '50-100': '50 à 100 / an', '100-200': '100 à 200 / an', '>200': 'Plus de 200 / an' };
 
 /* ---------- Filtres ---------- */
 const F = { period: 'today', amb: '', prof: '', dept: '' };
@@ -284,7 +284,7 @@ function renderLeads() {
   rows.sort(s === 'old' ? (a, b) => a.t.localeCompare(b.t) : s === 'name' ? (a, b) => a.nom.localeCompare(b.nom, 'fr') : s === 'dept' ? (a, b) => (a.geo?.deptCode || 'zz').localeCompare(b.geo?.deptCode || 'zz') : (a, b) => b.t.localeCompare(a.t));
   $('#leads-count').textContent = `${rows.length} inscrit${rows.length > 1 ? 's' : ''}${F.period !== 'all' ? ' sur la période' : ''}`;
   $('#leads').innerHTML = rows.length ? rows.map((l) => `<li><details class="lead"><summary><span class="pdot" style="background:${PROF_COLORS[l.profession] || '#888'}"></span><span class="nm">${esc(l.prenom)} ${esc(l.nom)}</span><span class="when">${frDate(l.t)}</span><span class="sub">${esc(l.profession)}${l.cabinet ? ' · ' + esc(l.cabinet) : ''}</span></summary>
-    <dl><dt>Téléphone</dt><dd>${esc(l.tel)}</dd><dt>E-mail</dt><dd>${esc(l.email)}</dd><dt>Adresse</dt><dd>${esc(l.adresse)}</dd>${l.geo ? `<dt>Département</dt><dd>${esc(l.geo.deptCode)} · ${esc(l.geo.deptName)}, ${esc(l.geo.region)}</dd>` : ''}<dt>Patients en EF</dt><dd>${l.patients ? PATIENTS[l.patients] : 'Non renseigné'}</dd><dt>Ambassadeur</dt><dd>${esc(nameOf(l.a))}</dd><dt>Rempli en</dt><dd>${Number.isFinite(l.durationSec) ? l.durationSec + ' s' : '–'}</dd></dl><button type="button" class="del" data-id="${esc(l.id)}" data-t="${esc(l.t)}">Supprimer cet inscrit</button></details></li>`).join('') : '<li class="muted">Aucun inscrit pour ces filtres.</li>';
+    <dl><dt>Téléphone</dt><dd>${esc(l.tel)}</dd><dt>E-mail</dt><dd>${esc(l.email)}</dd><dt>Adresse</dt><dd>${esc(l.adresse)}</dd>${l.geo ? `<dt>Département</dt><dd>${esc(l.geo.deptCode)} · ${esc(l.geo.deptName)}, ${esc(l.geo.region)}</dd>` : ''}<dt>Patients EF par an</dt><dd>${l.patients ? PATIENTS[l.patients] : 'Non renseigné'}</dd><dt>Ambassadeur</dt><dd>${esc(nameOf(l.a))}</dd><dt>Rempli en</dt><dd>${Number.isFinite(l.durationSec) ? l.durationSec + ' s' : '–'}</dd></dl><button type="button" class="del" data-id="${esc(l.id)}" data-t="${esc(l.t)}">Supprimer cet inscrit</button></details></li>`).join('') : '<li class="muted">Aucun inscrit pour ces filtres.</li>';
 }
 
 /* Suppression : deux appuis pour confirmer (pas de fenêtre de confirmation du navigateur). */
@@ -315,28 +315,64 @@ $('#reset').addEventListener('click', async (e) => {
   load();
 });
 
-/* ---------- Carte ---------- */
-let map, layer;
+/* ---------- Carte ----------
+   Dézoomé : un cercle par département (zoom ≤ 7) ou par ville (zoom 8 à 10), taille proportionnelle au nombre d'inscrits.
+   Zoomé (≥ 11) : un point par cabinet, coloré selon la profession. */
+let map, layer, mapFitted = false;
 function initMap() {
   if (map || !window.L) { if (!window.L) setTimeout(initMap, 300); return; }
-  map = L.map('map', { zoomControl: true, attributionControl: true }).setView([46.6, 2.4], 5);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18, attribution: '© OpenStreetMap, © CARTO' }).addTo(map);
+  map = L.map('map', { zoomControl: true, attributionControl: true }).setView([46.6, 2.4], 6);
+  // Fond de carte gratuit, sans clé : Esri « gris clair ». Repli sur OpenStreetMap si indisponible.
+  const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'Fond © Esri' });
+  let swapped = false;
+  esri.on('tileerror', () => { if (swapped) return; swapped = true; map.removeLayer(esri); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map); });
+  esri.addTo(map);
   layer = L.layerGroup().addTo(map);
-  $('#legend').innerHTML = PROFS.map((p) => `<span><i style="background:${PROF_COLORS[p]}"></i>${p}</span>`).join('');
+  map.on('zoomend', () => renderMap());
   renderMap(true);
+}
+function groupLeads(leads, level) {
+  const m = new Map();
+  leads.forEach((l) => {
+    const k = level === 'dept' ? l.geo.deptCode || '?' : `${l.geo.postcode}|${l.geo.city}`;
+    if (!m.has(k)) m.set(k, { label: level === 'dept' ? `${l.geo.deptCode} · ${l.geo.deptName}` : `${l.geo.city} (${l.geo.postcode})`, items: [] });
+    m.get(k).items.push(l);
+  });
+  return [...m.values()];
 }
 function renderMap(fit) {
   if (!map || !DATA) return;
   setTimeout(() => map.invalidateSize(), 50);
   layer.clearLayers();
-  const pts = [];
-  filtered().leads.filter((l) => l.geo?.lat).forEach((l) => {
-    pts.push([l.geo.lat, l.geo.lon]);
-    L.circleMarker([l.geo.lat, l.geo.lon], { radius: 8, color: '#0b0f19', weight: 2, fillColor: PROF_COLORS[l.profession] || '#fff', fillOpacity: 0.95 })
-      .bindPopup(`<b>${esc(l.prenom)} ${esc(l.nom)}</b><br>${esc(l.profession)}<br>${l.cabinet ? esc(l.cabinet) + '<br>' : ''}${esc(l.geo.label || l.adresse)}<br><small>Ambassadeur : ${esc(nameOf(l.a))}</small>`)
-      .addTo(layer);
-  });
-  if (fit && pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 12 });
+  const leads = filtered().leads.filter((l) => l.geo?.lat);
+  const z = map.getZoom();
+  const level = z <= 7 ? 'dept' : z <= 10 ? 'city' : 'point';
+  if (level === 'point') {
+    leads.forEach((l) => {
+      L.circleMarker([l.geo.lat, l.geo.lon], { radius: 8, color: '#0b0f19', weight: 2, fillColor: PROF_COLORS[l.profession] || '#fff', fillOpacity: 0.95 })
+        .bindPopup(`<b>${esc(l.prenom)} ${esc(l.nom)}</b><br>${esc(l.profession)}<br>${l.cabinet ? esc(l.cabinet) + '<br>' : ''}${esc(l.geo.label || l.adresse)}<br><small>Ambassadeur : ${esc(nameOf(l.a))}</small>`)
+        .addTo(layer);
+    });
+    $('#legend').innerHTML = '<b>Un point par cabinet</b>' + PROFS.map((p) => `<span><i style="background:${PROF_COLORS[p]}"></i>${p}</span>`).join('');
+  } else {
+    const groups = groupLeads(leads, level);
+    const max = Math.max(1, ...groups.map((g) => g.items.length));
+    const rad = (n) => 9 + 34 * Math.sqrt(n / max); // surface proportionnelle au nombre d'inscrits
+    groups.sort((a, b) => b.items.length - a.items.length).forEach((g) => {
+      const n = g.items.length;
+      const lat = g.items.reduce((s, l) => s + l.geo.lat, 0) / n, lon = g.items.reduce((s, l) => s + l.geo.lon, 0) / n;
+      const byProf = count(g.items, (l) => l.profession).map(([p, v]) => `<span style="color:${PROF_COLORS[p]}">●</span> ${esc(p)} : <b>${v}</b>`).join('<br>');
+      L.circleMarker([lat, lon], { radius: rad(n), color: '#ffffff', weight: 1.5, fillColor: '#e5484d', fillOpacity: 0.78 })
+        .bindTooltip(String(n), { permanent: true, direction: 'center', className: 'cnt' })
+        .bindPopup(`<b>${esc(g.label)}</b><br>${n} inscrit${n > 1 ? 's' : ''}<br>${byProf}`)
+        .addTo(layer);
+    });
+    const steps = [...new Set([max, Math.ceil(max / 2), 1])].filter((v) => v > 0);
+    $('#legend').innerHTML = `<b>Inscrits par ${level === 'dept' ? 'département' : 'ville'}</b>` +
+      steps.map((v) => `<span><i style="width:${Math.round(rad(v) * 1.1)}px;height:${Math.round(rad(v) * 1.1)}px;background:#e5484dc7;border:1px solid #fff"></i>${v}</span>`).join('') +
+      '<small>Zoome pour le détail</small>';
+  }
+  if ((fit || !mapFitted) && leads.length) { mapFitted = true; map.fitBounds(leads.map((l) => [l.geo.lat, l.geo.lon]), { padding: [40, 40], maxZoom: 7 }); }
 }
 
 /* ---------- Export Excel ---------- */
@@ -346,7 +382,7 @@ $('#export').addEventListener('click', () => {
   const wb = XLSX.utils.book_new();
   const add = (name, rows, widths) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Aucune donnée' }]); if (rows.length) ws['!autofilter'] = { ref: ws['!ref'] }; if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
   const dt = (t) => new Date(t).toLocaleString('fr-FR', { timeZone: TZ });
-  add('Inscrits', leads.map((l) => ({ 'Date et heure': dt(l.t), Ambassadeur: nameOf(l.a), Prénom: l.prenom, Nom: l.nom, Profession: l.profession, 'Cabinet / société': l.cabinet, Adresse: l.adresse, 'Code postal': l.geo?.postcode || '', Ville: l.geo?.city || '', Département: l.geo ? `${l.geo.deptCode} ${l.geo.deptName}` : '', Région: l.geo?.region || '', Téléphone: l.tel, 'E-mail': l.email, 'Patients en éducation fonctionnelle': l.patients ? PATIENTS[l.patients] : '', 'Rempli en (s)': l.durationSec ?? '', Latitude: l.geo?.lat ?? '', Longitude: l.geo?.lon ?? '' })), [18, 14, 14, 16, 18, 26, 40, 10, 16, 20, 22, 15, 28, 12, 10, 10]);
+  add('Inscrits', leads.map((l) => ({ 'Date et heure': dt(l.t), Ambassadeur: nameOf(l.a), Prénom: l.prenom, Nom: l.nom, Profession: l.profession, 'Cabinet / société': l.cabinet, Adresse: l.adresse, 'Code postal': l.geo?.postcode || '', Ville: l.geo?.city || '', Département: l.geo ? `${l.geo.deptCode} ${l.geo.deptName}` : '', Région: l.geo?.region || '', Téléphone: l.tel, 'E-mail': l.email, 'Patients en éducation fonctionnelle par an': l.patients ? PATIENTS[l.patients] : '', 'Rempli en (s)': l.durationSec ?? '', Latitude: l.geo?.lat ?? '', Longitude: l.geo?.lon ?? '' })), [18, 14, 14, 16, 18, 26, 40, 10, 16, 20, 22, 15, 28, 12, 10, 10]);
   add('Scans', scans.map((s) => ({ 'Date et heure': dt(s.t), Ambassadeur: nameOf(s.a), 'Visiteur (anonyme)': s.vid.slice(0, 8), 'Premier scan de ce téléphone': s.firstVisit ? 'Oui' : 'Non', Système: s.os, Navigateur: s.browser, Appareil: s.device, Langue: s.lang, 'Ville approx.': s.city, Région: s.region, Pays: s.country })), [18, 14, 14, 12, 10, 10, 10, 8, 16, 18, 6]);
   // Par 15 minutes
   const m = new Map();
