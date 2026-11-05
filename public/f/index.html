@@ -301,6 +301,14 @@ document.getElementById('again').addEventListener('click',()=>{startedAt=null;se
   document.querySelectorAll('#choices button').forEach(x=>x.setAttribute('aria-checked','false'));document.getElementById('to-promo').textContent='Voir mon code promo';
   promo.hidden=true;done.hidden=true;form.hidden=false;window.scrollTo({top:0})});
 
+// Conditions générales : panneau qui s'ouvre depuis le lien en bas de page
+const cgu=document.getElementById('cgu'),cguOpen=document.getElementById('cgu-open');
+cguOpen.addEventListener('click',()=>{cgu.hidden=false;cgu.firstElementChild.scrollTop=0;document.getElementById('cgu-title').focus({preventScroll:true})});
+function closeCgu(){cgu.hidden=true;cguOpen.focus()}
+document.getElementById('cgu-close').addEventListener('click',closeCgu);
+cgu.addEventListener('click',e=>{if(e.target===cgu)closeCgu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!cgu.hidden)closeCgu()});
+
 // Saisie d'adresse assistée (Base Adresse Nationale, gratuite)
 (()=>{const inp=document.getElementById('adresse'),list=document.getElementById('ac-list');let timer,items=[],sel=-1,ctl;
 function close(){list.hidden=true;inp.setAttribute('aria-expanded','false');sel=-1}
