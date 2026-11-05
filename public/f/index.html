@@ -58,7 +58,7 @@ h1 em{font-style:normal;color:var(--leaf)}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
   color:var(--night);background:var(--sun);padding:5px 12px;border-radius:999px}
 
-.card{background:var(--night-2);border:1px solid var(--line);border-radius:24px;padding:22px 18px;box-shadow:0 20px 50px #0007}
+.card{scroll-margin-top:12px;background:var(--night-2);border:1px solid var(--line);border-radius:24px;padding:22px 18px;box-shadow:0 20px 50px #0007}
 form{display:flex;flex-direction:column;gap:16px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:380px){.row{grid-template-columns:1fr}}
@@ -93,6 +93,20 @@ button:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
 .done{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 4px}
 .done h2{font-family:var(--display);font-size:1.6rem;margin:0}
 .done p{margin:0;color:var(--muted)}
+.patients{width:100%;display:flex;flex-direction:column;gap:12px;margin-top:8px;background:var(--night-3);border-radius:18px;padding:16px 14px}
+.patients .q{margin:0;color:var(--ink);font-weight:700}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choices button{font-family:var(--body);font-weight:700;font-size:.95rem;color:var(--ink);background:var(--night-2);border:2px solid var(--line);border-radius:14px;padding:12px 6px;box-shadow:none}
+.choices button:last-child{grid-column:1/-1}
+.choices button[aria-checked="true"]{border-color:var(--leaf);background:#1d2d22}
+.choices button:active{transform:none;box-shadow:none}
+.promo-panda{width:110px;height:auto;filter:drop-shadow(0 12px 22px #0009)}
+.code{display:flex;align-items:center;gap:10px;background:#fff;color:var(--night);border-radius:16px;padding:10px 10px 10px 18px;border:3px dashed var(--lav)}
+.code span{font-family:var(--display);font-weight:700;font-size:1.6rem;letter-spacing:.06em;user-select:all}
+.code .copy{font-size:.95rem;padding:9px 14px;background:var(--lav);color:#fff;box-shadow:none}
+.code .copy:active{transform:none}
+.exp{font-size:.88rem}
+.app-btn{display:block;width:100%;text-align:center;font-family:var(--display);font-weight:600;font-size:1.1rem;color:var(--night);background:var(--leaf);border-radius:999px;padding:15px 20px;text-decoration:none;box-shadow:0 6px 0 #4c9f2f;margin-top:6px}
 .recap{width:100%;text-align:left;background:var(--night-3);border-radius:16px;padding:14px 16px;font-size:.92rem;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}
 .recap dt{color:var(--muted)}
 .recap dd{margin:0;font-weight:700;overflow-wrap:anywhere}
@@ -169,10 +183,29 @@ footer{color:var(--muted);font-size:.8rem;display:flex;flex-direction:column;gap
     </form>
 
     <div class="done" id="done" hidden>
-      <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="34" fill="#7ed957"/><path d="M22 37l9 9 19-20" fill="none" stroke="#0b0f19" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <h2>Merci !</h2>
-      <p>Vos coordonnées sont bien notées. On revient vers vous très vite pour activer vos 3 mois offerts.</p>
-      <dl class="recap" id="recap"></dl>
+      <svg width="64" height="64" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="34" fill="#7ed957"/><path d="M22 37l9 9 19-20" fill="none" stroke="#0b0f19" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h2>Questionnaire bien rempli</h2>
+      <p>Merci, vos coordonnées sont enregistrées.</p>
+      <div class="patients" id="patients">
+        <p class="q">Combien de patients suivez-vous en éducation fonctionnelle ? <span class="opt">(facultatif)</span></p>
+        <div class="choices" id="choices" role="radiogroup" aria-label="Nombre de patients en éducation fonctionnelle">
+          <button type="button" role="radio" aria-checked="false" data-v="<20">Moins de 20</button>
+          <button type="button" role="radio" aria-checked="false" data-v="20-50">20 à 50</button>
+          <button type="button" role="radio" aria-checked="false" data-v="50-100">50 à 100</button>
+          <button type="button" role="radio" aria-checked="false" data-v="100-200">100 à 200</button>
+          <button type="button" role="radio" aria-checked="false" data-v=">200">Plus de 200</button>
+        </div>
+        <button type="button" id="to-promo">Voir mon code promo</button>
+      </div>
+    </div>
+
+    <div class="done reward" id="promo" hidden>
+      <img src="/img/panda.webp" alt="" width="120" height="180" class="promo-panda">
+      <h2>Félicitations !</h2>
+      <p>Voici votre code promo pour <b>3 mois de PandaSmile offerts</b> :</p>
+      <div class="code"><span id="promo-code">PANDAJO2026</span><button type="button" class="copy" id="copy-code">Copier</button></div>
+      <p class="exp">Code valable jusqu’au 31 décembre 2026.</p>
+      <a class="app-btn" href="https://pandasmile.app" target="_blank" rel="noopener">Accéder à l’application PandaSmile</a>
       <button class="ghost" id="again" type="button">Remplir un nouveau formulaire</button>
     </div>
   </section>
@@ -219,7 +252,7 @@ function filledCount(){return [...document.querySelectorAll('#form input:not([ty
 let abandonSent=false;
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&startedAt&&!sent&&!abandonSent){abandonSent=true;track('abandon',{field:lastField,filled:filledCount()})}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')abandonSent=false});
-const form=document.getElementById('form'),done=document.getElementById('done'),recap=document.getElementById('recap');
+const form=document.getElementById('form'),done=document.getElementById('done'),promo=document.getElementById('promo');let leadId="",leadRef="",patients="";
 const labels={prenom:'Prénom',nom:'Nom',profession:'Profession',cabinet:'Cabinet / société',adresse:'Adresse',tel:'Téléphone',email:'E-mail'};
 function check(el){
   const f=el.closest('.field');if(!f)return true;const m=f.querySelector('.msg');let t='';
@@ -247,15 +280,26 @@ form.addEventListener('submit',async e=>{
   const data={};for(const k in labels)data[k]=form.elements[k].value.trim();
   try{
     const r=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...data,a:Q.a,s:Q.s,consent:true,consentText:document.querySelector('.consent span').textContent,startedAt})});
-    if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||'Erreur')}
-    sent=true;
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||'Erreur');
+    leadId=d.id||"";leadRef=d.ref||"";sent=true;
   }catch(err){sm.textContent='L’envoi n’a pas abouti. Vérifiez votre connexion puis réessayez.';btn.disabled=false;btn.textContent='Je profite des 3 mois offerts';return}
   btn.disabled=false;btn.textContent='Je profite des 3 mois offerts';
-  recap.innerHTML='';
-  for(const k in labels){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=labels[k];dd.textContent=data[k]||'–';recap.append(dt,dd)}
-  form.hidden=true;done.hidden=false;window.scrollTo({top:0,behavior:'smooth'});
+  form.hidden=true;done.hidden=false;document.querySelector('.card').scrollIntoView({behavior:'smooth',block:'start'});
 });
-document.getElementById('again').addEventListener('click',()=>{startedAt=null;sent=false;form.reset();document.getElementById('rgpd').checked=false;done.hidden=true;form.hidden=false});
+document.getElementById('choices').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  const on=b.getAttribute('aria-checked')!=='true';patients=on?b.dataset.v:'';
+  document.querySelectorAll('#choices button').forEach(x=>x.setAttribute('aria-checked',String(x===b&&on)));
+  document.getElementById('to-promo').textContent=patients?'Valider et voir mon code promo':'Voir mon code promo';});
+document.getElementById('to-promo').addEventListener('click',()=>{
+  if(patients&&leadId){try{fetch('/api/patients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:leadId,ref:leadRef,patients}),keepalive:true})}catch{}}
+  done.hidden=true;promo.hidden=false;document.querySelector('.card').scrollIntoView({behavior:'smooth',block:'start'});});
+document.getElementById('copy-code').addEventListener('click',async e=>{const b=e.currentTarget;
+  try{await navigator.clipboard.writeText('PANDAJO2026');b.textContent='Copié ✓'}catch{const r=document.createRange();r.selectNodeContents(document.getElementById('promo-code'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent='Sélectionné'}
+  setTimeout(()=>b.textContent='Copier',2000)});
+document.getElementById('again').addEventListener('click',()=>{startedAt=null;sent=false;leadId='';patients='';form.reset();document.getElementById('rgpd').checked=false;
+  document.querySelectorAll('#choices button').forEach(x=>x.setAttribute('aria-checked','false'));document.getElementById('to-promo').textContent='Voir mon code promo';
+  promo.hidden=true;done.hidden=true;form.hidden=false;window.scrollTo({top:0})});
 
 // Saisie d'adresse assistée (Base Adresse Nationale, gratuite)
 (()=>{const inp=document.getElementById('adresse'),list=document.getElementById('ac-list');let timer,items=[],sel=-1,ctl;

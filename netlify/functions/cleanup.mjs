@@ -11,6 +11,12 @@ export default async () => {
       if (b.key.slice(0, limit.length) < limit) { await s.delete(b.key); removed++; }
     }
   }
+  // Index anti-doublon : on retire les entrées qui pointent vers des inscrits effacés.
+  for (const name of ["leadidx"]) {
+    const s = store(name);
+    const { blobs } = await s.list();
+    for (const b of blobs) { const k = await s.get(b.key); if (k && k.slice(0, limit.length) < limit) { await s.delete(b.key); removed++; } }
+  }
   console.log(`cleanup: ${removed} enregistrements supprimés`);
 };
 

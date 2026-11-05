@@ -27,13 +27,24 @@ export default async (req, context) => {
     region: geo.subdivision?.name || "",
     country: geo.country?.code || "",
   };
+  // Anti-doublon : un même téléphone qui rescanne le QR code du même ambassadeur ne compte qu'une fois.
   // Pas d'adresse IP stockée : seulement la ville approximative.
-  try { await store("scans").setJSON(keyFor(t, scanId), rec); } catch (e) { console.error("scan store", e); }
+  let sid = scanId;
+  try {
+    const seen = store("seen");
+    const seenKey = `${person.id}_${vid}`;
+    const prev = firstVisit ? null : await seen.get(seenKey);
+    if (prev) sid = prev;
+    else {
+      await store("scans").setJSON(keyFor(t, scanId), rec);
+      await seen.set(seenKey, scanId);
+    }
+  } catch (e) { console.error("scan store", e); }
 
   return new Response(null, {
     status: 302,
     headers: {
-      location: `${base}/f/?a=${encodeURIComponent(person.id)}&s=${scanId}`,
+      location: `${base}/f/?a=${encodeURIComponent(person.id)}&s=${sid}`,
       "set-cookie": `ps_vid=${vid}; Path=/; Max-Age=${90 * 24 * 3600}; SameSite=Lax; Secure; HttpOnly`,
       "cache-control": "no-store",
     },

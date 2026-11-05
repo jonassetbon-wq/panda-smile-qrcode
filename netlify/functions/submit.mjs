@@ -52,8 +52,26 @@ export default async (req) => {
     durationSec: Number.isFinite(started) ? Math.max(0, Math.round((Date.now() - started) / 1000)) : null,
     geo,
   };
-  await store("leads").setJSON(keyFor(t, id), rec);
-  return json({ ok: true });
+  // Anti-doublon : un même e-mail ou un même téléphone ne compte qu'une fois (on garde la dernière version).
+  const leads = store("leads"), idx = store("leadidx");
+  const phone = lead.tel.replace(/\D/g, "").replace(/^33/, "0");
+  const idxKeys = [`e_${lead.email}`, phone.length >= 9 ? `t_${phone}` : null].filter(Boolean).map((k) => k.replace(/[^\w@.+-]/g, "_"));
+  for (const k of idxKeys) {
+    const old = await idx.get(k);
+    if (old) {
+      const prev = await leads.get(old, { type: "json" });
+      if (prev) {
+        if (prev.patients && !rec.patients) rec.patients = prev.patients;
+        rec.duplicateOf = (prev.duplicateOf || 0) + 1;
+        if (!rec.a && prev.a) rec.a = prev.a;
+        await leads.delete(old);
+      }
+    }
+  }
+  const key = keyFor(t, id);
+  await leads.setJSON(key, rec);
+  for (const k of idxKeys) await idx.set(k, key);
+  return json({ ok: true, id, ref: key });
 };
 
 export const config = { path: "/api/submit" };

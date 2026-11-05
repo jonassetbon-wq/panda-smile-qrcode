@@ -107,13 +107,27 @@ async function load() {
   try {
     const r = await fetch('/api/admin/data', { headers: { Authorization: 'Bearer ' + session.token }, cache: 'no-store' });
     if (r.status === 401) { $('#logout').click(); return; }
-    DATA = await r.json();
+    DATA = dedupe(await r.json());
     lastLoad = Date.now(); $('.dot').classList.remove('off');
     fillFilterOptions(); render();
   } catch { $('.dot').classList.add('off'); $('#live-txt').textContent = 'Hors ligne · nouvel essai dans 15 s'; }
   finally { loading = false; }
 }
 $('#refresh').addEventListener('click', load);
+
+/* Doublons : un téléphone = un scan par ambassadeur ; un e-mail ou un téléphone = un inscrit (le plus récent). */
+function dedupe(d) {
+  const seen = new Set();
+  d.scans = d.scans.sort((a, b) => a.t.localeCompare(b.t)).filter((s) => { const k = s.a + '|' + s.vid; if (seen.has(k)) return false; seen.add(k); return true; });
+  const byKey = new Set();
+  d.leads = d.leads.sort((a, b) => b.t.localeCompare(a.t)).filter((l) => {
+    const keys = [l.email && 'e' + l.email.toLowerCase(), (l.tel || '').replace(/\D/g, '').length >= 9 && 't' + l.tel.replace(/\D/g, '').replace(/^33/, '0')].filter(Boolean);
+    if (keys.some((k) => byKey.has(k))) return false;
+    keys.forEach((k) => byKey.add(k)); return true;
+  });
+  return d;
+}
+const PATIENTS = { '<20': 'Moins de 20', '20-50': '20 à 50', '50-100': '50 à 100', '100-200': '100 à 200', '>200': 'Plus de 200' };
 
 /* ---------- Filtres ---------- */
 const F = { period: 'today', amb: '', prof: '', dept: '' };
@@ -181,6 +195,7 @@ function render() {
   bars('#b-prof', count(leads, (l) => l.profession), PROF_COLORS);
   bars('#b-dept', count(leads, (l) => (l.geo?.deptCode ? `${l.geo.deptCode} · ${l.geo.deptName}` : 'Adresse non reconnue')), null, 8);
   bars('#b-os', count(scans, (s) => s.os));
+  bars('#b-pat', count(leads.filter((l) => l.patients), (l) => PATIENTS[l.patients]), null, 6, 'Pas encore de réponse.');
   const ab = events.filter((e) => e.type === 'abandon');
   bars('#b-ab', count(ab, (e) => FIELD_NAMES[e.field] || e.field || 'Inconnu'), null, 8, 'Aucun abandon pour l’instant.');
   bars('#b-city', count(scans, (s) => s.city || 'Inconnue'), null, 8);
@@ -269,8 +284,36 @@ function renderLeads() {
   rows.sort(s === 'old' ? (a, b) => a.t.localeCompare(b.t) : s === 'name' ? (a, b) => a.nom.localeCompare(b.nom, 'fr') : s === 'dept' ? (a, b) => (a.geo?.deptCode || 'zz').localeCompare(b.geo?.deptCode || 'zz') : (a, b) => b.t.localeCompare(a.t));
   $('#leads-count').textContent = `${rows.length} inscrit${rows.length > 1 ? 's' : ''}${F.period !== 'all' ? ' sur la période' : ''}`;
   $('#leads').innerHTML = rows.length ? rows.map((l) => `<li><details class="lead"><summary><span class="pdot" style="background:${PROF_COLORS[l.profession] || '#888'}"></span><span class="nm">${esc(l.prenom)} ${esc(l.nom)}</span><span class="when">${frDate(l.t)}</span><span class="sub">${esc(l.profession)}${l.cabinet ? ' · ' + esc(l.cabinet) : ''}</span></summary>
-    <dl><dt>Téléphone</dt><dd>${esc(l.tel)}</dd><dt>E-mail</dt><dd>${esc(l.email)}</dd><dt>Adresse</dt><dd>${esc(l.adresse)}</dd>${l.geo ? `<dt>Département</dt><dd>${esc(l.geo.deptCode)} · ${esc(l.geo.deptName)}, ${esc(l.geo.region)}</dd>` : ''}<dt>Ambassadeur</dt><dd>${esc(nameOf(l.a))}</dd><dt>Rempli en</dt><dd>${Number.isFinite(l.durationSec) ? l.durationSec + ' s' : '–'}</dd></dl></details></li>`).join('') : '<li class="muted">Aucun inscrit pour ces filtres.</li>';
+    <dl><dt>Téléphone</dt><dd>${esc(l.tel)}</dd><dt>E-mail</dt><dd>${esc(l.email)}</dd><dt>Adresse</dt><dd>${esc(l.adresse)}</dd>${l.geo ? `<dt>Département</dt><dd>${esc(l.geo.deptCode)} · ${esc(l.geo.deptName)}, ${esc(l.geo.region)}</dd>` : ''}<dt>Patients en EF</dt><dd>${l.patients ? PATIENTS[l.patients] : 'Non renseigné'}</dd><dt>Ambassadeur</dt><dd>${esc(nameOf(l.a))}</dd><dt>Rempli en</dt><dd>${Number.isFinite(l.durationSec) ? l.durationSec + ' s' : '–'}</dd></dl><button type="button" class="del" data-id="${esc(l.id)}" data-t="${esc(l.t)}">Supprimer cet inscrit</button></details></li>`).join('') : '<li class="muted">Aucun inscrit pour ces filtres.</li>';
 }
+
+/* Suppression : deux appuis pour confirmer (pas de fenêtre de confirmation du navigateur). */
+function armed(btn, label) {
+  if (btn.dataset.armed) return true;
+  btn.dataset.armed = '1'; const old = btn.textContent; btn.textContent = label; btn.classList.add('armed');
+  setTimeout(() => { delete btn.dataset.armed; btn.textContent = old; btn.classList.remove('armed'); }, 4000);
+  return false;
+}
+async function adminPost(body) {
+  const r = await fetch('/api/admin/delete', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.token }, body: JSON.stringify(body) });
+  return r.ok;
+}
+$('#leads').addEventListener('click', async (e) => {
+  const b = e.target.closest('.del'); if (!b) return;
+  if (!armed(b, 'Appuie encore pour supprimer définitivement')) return;
+  b.disabled = true; b.textContent = 'Suppression…';
+  if (await adminPost({ id: b.dataset.id, t: b.dataset.t })) { DATA.leads = DATA.leads.filter((l) => l.id !== b.dataset.id); render(); load(); }
+  else { b.disabled = false; b.textContent = 'Échec, réessaie'; }
+});
+$('#reset').addEventListener('click', async (e) => {
+  const b = e.currentTarget;
+  if (!armed(b, 'Appuie encore : tout sera effacé')) return;
+  b.disabled = true; b.textContent = 'Effacement…';
+  const ok = await adminPost({ reset: true });
+  b.disabled = false; b.textContent = ok ? 'Stats remises à zéro ✓' : 'Échec, réessaie';
+  setTimeout(() => (b.textContent = 'Remettre les stats à zéro'), 3000);
+  load();
+});
 
 /* ---------- Carte ---------- */
 let map, layer;
@@ -303,7 +346,7 @@ $('#export').addEventListener('click', () => {
   const wb = XLSX.utils.book_new();
   const add = (name, rows, widths) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Aucune donnée' }]); if (rows.length) ws['!autofilter'] = { ref: ws['!ref'] }; if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
   const dt = (t) => new Date(t).toLocaleString('fr-FR', { timeZone: TZ });
-  add('Inscrits', leads.map((l) => ({ 'Date et heure': dt(l.t), Ambassadeur: nameOf(l.a), Prénom: l.prenom, Nom: l.nom, Profession: l.profession, 'Cabinet / société': l.cabinet, Adresse: l.adresse, 'Code postal': l.geo?.postcode || '', Ville: l.geo?.city || '', Département: l.geo ? `${l.geo.deptCode} ${l.geo.deptName}` : '', Région: l.geo?.region || '', Téléphone: l.tel, 'E-mail': l.email, 'Rempli en (s)': l.durationSec ?? '', Latitude: l.geo?.lat ?? '', Longitude: l.geo?.lon ?? '' })), [18, 14, 14, 16, 18, 26, 40, 10, 16, 20, 22, 15, 28, 12, 10, 10]);
+  add('Inscrits', leads.map((l) => ({ 'Date et heure': dt(l.t), Ambassadeur: nameOf(l.a), Prénom: l.prenom, Nom: l.nom, Profession: l.profession, 'Cabinet / société': l.cabinet, Adresse: l.adresse, 'Code postal': l.geo?.postcode || '', Ville: l.geo?.city || '', Département: l.geo ? `${l.geo.deptCode} ${l.geo.deptName}` : '', Région: l.geo?.region || '', Téléphone: l.tel, 'E-mail': l.email, 'Patients en éducation fonctionnelle': l.patients ? PATIENTS[l.patients] : '', 'Rempli en (s)': l.durationSec ?? '', Latitude: l.geo?.lat ?? '', Longitude: l.geo?.lon ?? '' })), [18, 14, 14, 16, 18, 26, 40, 10, 16, 20, 22, 15, 28, 12, 10, 10]);
   add('Scans', scans.map((s) => ({ 'Date et heure': dt(s.t), Ambassadeur: nameOf(s.a), 'Visiteur (anonyme)': s.vid.slice(0, 8), 'Premier scan de ce téléphone': s.firstVisit ? 'Oui' : 'Non', Système: s.os, Navigateur: s.browser, Appareil: s.device, Langue: s.lang, 'Ville approx.': s.city, Région: s.region, Pays: s.country })), [18, 14, 14, 12, 10, 10, 10, 8, 16, 18, 6]);
   // Par 15 minutes
   const m = new Map();
