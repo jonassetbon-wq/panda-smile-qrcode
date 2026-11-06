@@ -352,12 +352,29 @@ function renderMap(fit) {
     });
     $('#legend').innerHTML = '<b>Un point par cabinet</b>' + PROFS.map((p) => `<span><i style="background:${PROF_COLORS[p]}"></i>${p}</span>`).join('');
   } else {
-    const groups = groupLeads(leads, level);
-    const max = Math.max(1, ...groups.map((g) => g.items.length));
-    const rad = (n) => 9 + 34 * Math.sqrt(n / max); // surface proportionnelle au nombre d'inscrits
+    // Regroupe les cercles qui se chevauchent à l'écran : un seul cercle avec le total de la zone.
+    let groups = groupLeads(leads, level).map((g) => ({ ...g, labels: [g.label] }));
+    let max = Math.max(1, ...groups.map((g) => g.items.length));
+    let rad = (n) => 9 + 34 * Math.sqrt(n / max); // surface proportionnelle au nombre d'inscrits
+    const center = (g) => { const n = g.items.length; return [g.items.reduce((s, l) => s + l.geo.lat, 0) / n, g.items.reduce((s, l) => s + l.geo.lon, 0) / n]; };
+    for (let pass = 0; pass < 6; pass++) {
+      let merged = false;
+      groups.sort((x, y) => y.items.length - x.items.length);
+      const out = [];
+      for (const g of groups) {
+        const pg = map.latLngToContainerPoint(center(g));
+        const host = out.find((h) => map.latLngToContainerPoint(center(h)).distanceTo(pg) < rad(h.items.length) + rad(g.items.length) + 2);
+        if (host) { host.items.push(...g.items); host.labels.push(...g.labels); merged = true; }
+        else out.push({ ...g, items: [...g.items], labels: g.labels || [g.label] });
+      }
+      groups = out.map((g) => ({ ...g, labels: g.labels || [g.label] }));
+      max = Math.max(1, ...groups.map((g) => g.items.length));
+      if (!merged) break;
+    }
+    groups.forEach((g) => { g.label = g.labels.length > 1 ? `Zone : ${g.labels.slice(0, 4).join(', ')}${g.labels.length > 4 ? '…' : ''}` : g.labels[0]; });
     groups.sort((a, b) => b.items.length - a.items.length).forEach((g) => {
       const n = g.items.length;
-      const lat = g.items.reduce((s, l) => s + l.geo.lat, 0) / n, lon = g.items.reduce((s, l) => s + l.geo.lon, 0) / n;
+      const [lat, lon] = center(g);
       const byProf = count(g.items, (l) => l.profession).map(([p, v]) => `<span style="color:${PROF_COLORS[p]}">●</span> ${esc(p)} : <b>${v}</b>`).join('<br>');
       L.circleMarker([lat, lon], { radius: rad(n), color: '#ffffff', weight: 1.5, fillColor: '#e5484d', fillOpacity: 0.78 })
         .bindTooltip(String(n), { permanent: true, direction: 'center', className: 'cnt' })
@@ -365,7 +382,7 @@ function renderMap(fit) {
         .addTo(layer);
     });
     const steps = [...new Set([max, Math.ceil(max / 2), 1])].filter((v) => v > 0);
-    $('#legend').innerHTML = `<b>Inscrits par ${level === 'dept' ? 'département' : 'ville'}</b>` +
+    $('#legend').innerHTML = `<b>Inscrits par zone${level === 'dept' ? ' (départements)' : ' (villes)'}</b>` +
       steps.map((v) => `<span><i style="width:${Math.round(rad(v) * 1.1)}px;height:${Math.round(rad(v) * 1.1)}px;background:#e5484dc7;border:1px solid #fff"></i>${v}</span>`).join('') +
       '<small>Zoome pour le détail</small>';
   }
