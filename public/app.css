@@ -159,3 +159,5 @@ select{background:var(--night-2);border:1px solid var(--line);border-radius:12px
 .del{margin:0 14px 14px}
 .danger{margin-top:18px}
 .del.armed,.danger.armed{background:var(--danger);color:var(--night);border-color:var(--danger)}
+
+.tiles-grey{filter:grayscale(1) contrast(.9) brightness(1.05)}

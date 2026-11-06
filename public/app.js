@@ -322,11 +322,8 @@ let map, layer, mapFitted = false;
 function initMap() {
   if (map || !window.L) { if (!window.L) setTimeout(initMap, 300); return; }
   map = L.map('map', { zoomControl: true, attributionControl: true }).setView([46.6, 2.4], 6);
-  // Fond de carte gratuit, sans clé : Esri « gris clair ». Repli sur OpenStreetMap si indisponible.
-  const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'Fond © Esri' });
-  let swapped = false;
-  esri.on('tileerror', () => { if (swapped) return; swapped = true; map.removeLayer(esri); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map); });
-  esri.addTo(map);
+  // Fond de carte OpenStreetMap : gratuit, sans clé ni compte. Passé en gris clair par CSS (.tiles-grey).
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, className: 'tiles-grey', attribution: '© les contributeurs OpenStreetMap' }).addTo(map);
   layer = L.layerGroup().addTo(map);
   map.on('zoomend', () => renderMap());
   renderMap(true);
