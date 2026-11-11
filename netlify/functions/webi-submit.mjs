@@ -64,7 +64,6 @@ export default async (req) => {
   const other = (v, list, n = 80) => (list.includes(v) ? { v, other: "" } : clean(v, n) ? { v: "Autre", other: clean(v, n) } : { v: "", other: "" });
   const prof = other(b.profession, CHOICES.profession);
   const src = other(b.source, CHOICES.source);
-  const liked = (Array.isArray(b.liked) ? b.liked : []).slice(0, 8).map((x) => clean(x, 80)).filter(Boolean);
   const cp = clean(b.postcode, 5);
 
   const missing = [];
@@ -82,8 +81,6 @@ export default async (req) => {
     id, t, webinar: WEBINAR.id, ...person,
     rating: Math.round(rating),
     learned: b.learned,
-    liked: liked.filter((x) => CHOICES.liked.includes(x)),
-    likedOther: clean(liked.find((x) => !CHOICES.liked.includes(x)), 120),
     length: pick(b.length, CHOICES.length),
     tryApp: b.tryApp,
     profession: prof.v === "Autre" ? prof.other : prof.v,

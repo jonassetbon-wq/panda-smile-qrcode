@@ -26,8 +26,7 @@ export const attendees = [
 export const findAttendee = (id) => attendees.find((a) => a.id === id);
 
 export const CHOICES = {
-  learned: ["Beaucoup", "Quelques-unes", "Pas vraiment"],
-  liked: ["Les exercices à faire à la maison", "La motivation des enfants et l'observance", "Les cas cliniques", "La présentation de PandaSmile", "Les questions-réponses"],
+  learned: ["Un peu", "Beaucoup", "Énormément"],
   length: ["Trop courte", "Parfaite", "Trop longue"],
   tryApp: ["Oui, dès maintenant", "Je veux d'abord en savoir plus", "Pas pour l'instant"],
   profession: ["Orthodontiste", "Orthophoniste", "Chirurgien-dentiste", "Kinésithérapeute maxillo-facial"],

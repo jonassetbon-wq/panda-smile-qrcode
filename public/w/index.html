@@ -211,13 +211,8 @@ textarea:focus{border-color:var(--sky);background:#222a50}
         <p class="msg"></p>
       </div>
       <div class="block" data-q="learned">
-        <p class="q">Avez-vous appris des choses ?</p>
+        <p class="q">Ce webinaire vous a-t-il appris des choses&nbsp;?</p>
         <div class="opts" data-single="learned"></div><p class="msg"></p>
-      </div>
-      <div class="block">
-        <p class="q">Qu'est-ce qui vous a le plus intéressé ? <span class="opt">(plusieurs choix)</span></p>
-        <div class="opts col" data-multi="liked"></div>
-        <input id="liked-other" placeholder="Autre chose ? Écrivez-le ici" hidden>
       </div>
       <div class="block">
         <p class="q">La durée du webinaire était…</p>
@@ -291,8 +286,7 @@ textarea:focus{border-color:var(--sky);background:#222a50}
 
 <script>
 const CH={
-  learned:["Beaucoup","Quelques-unes","Pas vraiment"],
-  liked:["Les exercices à faire à la maison","La motivation des enfants et l'observance","Les cas cliniques","La présentation de PandaSmile","Les questions-réponses","Autre"],
+  learned:["Un peu","Beaucoup","Énormément"],
   length:["Trop courte","Parfaite","Trop longue"],
   tryApp:["Oui, dès maintenant","Je veux d'abord en savoir plus","Pas pour l'instant"],
   profession:["Orthodontiste","Orthophoniste","Chirurgien-dentiste","Kinésithérapeute maxillo-facial","Autre"],
@@ -300,7 +294,7 @@ const CH={
 const STAR_LBL=['','Décevant','Moyen','Bien','Très bien','Excellent'];
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SID=Math.random().toString(36).slice(2,12);
-const A={who:'',name:'',email:'',rating:0,learned:'',liked:[],length:'',tryApp:'',profession:'',source:''};
+const A={who:'',name:'',email:'',rating:0,learned:'',length:'',tryApp:'',profession:'',source:''};
 let people=[],startedAt=null,ref='',rid='',step=1;
 function track(type){try{const b=JSON.stringify({type,who:A.who,s:SID});navigator.sendBeacon?navigator.sendBeacon('/api/webi/event',new Blob([b],{type:'text/plain'})):fetch('/api/webi/event',{method:'POST',body:b,keepalive:true})}catch{}}
 track('view');
@@ -342,11 +336,6 @@ document.querySelectorAll('[data-single]').forEach(box=>{const k=box.dataset.sin
   box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;A[k]=b.dataset.v;
     box.querySelectorAll('button').forEach(x=>x.setAttribute('aria-checked',String(x===b)));
     const o=$('#'+k+'-other');if(o){o.hidden=A[k]!=='Autre';if(!o.hidden)o.focus()}clearErr(k)});});
-document.querySelectorAll('[data-multi]').forEach(box=>{const k=box.dataset.multi;
-  box.innerHTML=CH[k].map(v=>`<button type="button" aria-pressed="false" data-v="${esc(v)}">${esc(v)}</button>`).join('');
-  box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const v=b.dataset.v,on=b.getAttribute('aria-pressed')!=='true';
-    b.setAttribute('aria-pressed',String(on));A[k]=on?[...A[k],v]:A[k].filter(x=>x!==v);
-    if(v==='Autre'){$('#liked-other').hidden=!on;if(on)$('#liked-other').focus()}});});
 function err(k,t){const bl=document.querySelector(`[data-q="${k}"]`);bl.querySelector('.msg:last-of-type').textContent=t;return bl}
 function clearErr(k){const bl=document.querySelector(`[data-q="${k}"]`);if(bl)bl.querySelectorAll('.msg').forEach(m=>m.textContent='')}
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>show(+b.dataset.back)));
@@ -368,9 +357,8 @@ $('#go3').addEventListener('click',async()=>{let first=null;
   if(!src){const _e=err('source',A.source==='Autre'?'Écrivez où vous l’avez découvert.':'Choisissez une réponse.');first=first||_e}
   if(!/^\d{5}$/.test($('#cp').value)){const _e=err('postcode','Le code postal fait 5 chiffres.');first=first||_e}
   if(first){first.scrollIntoView({behavior:'smooth',block:'center'});return}
-  const liked=A.liked.filter(x=>x!=='Autre');const lo=$('#liked-other').value.trim();if(A.liked.includes('Autre')&&lo)liked.push(lo);
   const btn=$('#go3'),sm=$('#send-msg');btn.disabled=true;btn.textContent='Envoi…';sm.textContent='';
-  try{const r=await fetch('/api/webi/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'answer',who:A.who,name:A.name,email:A.email,rating:A.rating,learned:A.learned,liked,length:A.length,tryApp:A.tryApp,profession:prof,source:src,postcode:$('#cp').value,topic:$('#topic').value,message:$('#message').value,startedAt})});
+  try{const r=await fetch('/api/webi/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'answer',who:A.who,name:A.name,email:A.email,rating:A.rating,learned:A.learned,length:A.length,tryApp:A.tryApp,profession:prof,source:src,postcode:$('#cp').value,topic:$('#topic').value,message:$('#message').value,startedAt})});
     const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error);ref=d.ref;rid=d.id;
   }catch{sm.textContent='L’envoi n’a pas abouti. Vérifiez votre connexion puis réessayez.';btn.disabled=false;btn.textContent='Envoyer mes réponses';return}
   btn.disabled=false;btn.textContent='Envoyer mes réponses';
