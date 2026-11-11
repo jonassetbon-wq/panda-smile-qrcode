@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f19">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="/img/icon.png">
+<link rel="apple-touch-icon" href="/img/icon.png">
+<title>PandaSmile Ambassadeurs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="/vendor/leaflet.css">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+
+<!-- Connexion -->
+<main id="login" class="login" hidden>
+  <img class="login-logo" src="/img/logo.webp" alt="PandaSmile" width="900" height="279">
+  <h1>Espace ambassadeurs</h1>
+  <form id="login-form" novalidate>
+    <p class="lbl">Qui es-tu ?</p>
+    <div class="who" id="who" role="radiogroup" aria-label="Ton prénom"></div>
+    <label class="lbl" for="pin">Ton code à 6 chiffres</label>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
+    <p class="err" id="login-err" role="alert"></p>
+    <button class="cta" type="submit">Entrer</button>
+  </form>
+  <p class="note">Chacun a son propre code. Ce téléphone reste connecté à ton nom : chaque scan de ton QR code est compté pour toi.</p>
+</main>
+
+<!-- Application -->
+<main id="app" class="app" hidden>
+  <header class="head">
+    <img class="head-logo" src="/img/logo.webp" alt="PandaSmile" width="900" height="279">
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+    <div class="cat" id="cat" role="radiogroup" aria-label="Catégorie" hidden><button type="button" data-v="jo" title="Journée de l’orthodontie">JO</button><button type="button" data-v="webi" title="Webinaire">Webi</button></div>
+    <span class="me"><b id="me-name"></b><button type="button" id="logout" class="out">Quitter</button></span>
+  </header>
+  <div class="panes" id="panes">
+
+    <section class="pane" id="pane-qr" aria-label="QR code">
+      <div class="qr-wrap">
+        <p class="qr-hello">Bonjour <b id="qr-name"></b></p>
+        <div class="qr-card"><div id="qr"></div><img class="qr-panda" src="/img/icon.png" alt=""></div>
+        <p class="qr-offer"><strong>3 mois de PandaSmile offerts</strong>Faites scanner ce code aux praticiens</p>
+        <p class="qr-link"><span id="qr-url"></span><button type="button" id="copy" class="mini">Copier</button></p>
+        <p class="qr-hint" id="swipe-hint" hidden>Glisse vers la gauche pour voir les stats en direct →</p>
+      </div>
+    </section>
+
+    <section class="pane" id="pane-stats" aria-label="Stats" hidden>
+      <div class="pad">
+        <div class="live"><span class="dot"></span><span id="live-txt">Chargement…</span><button type="button" class="mini" id="refresh">Actualiser</button></div>
+        <div class="filters">
+          <div class="chips" id="f-period" role="radiogroup" aria-label="Période">
+            <button type="button" data-v="today" class="on">Aujourd’hui</button>
+            <button type="button" data-v="24h">24 h</button>
+            <button type="button" data-v="7d">7 jours</button>
+            <button type="button" data-v="all">Tout</button>
+          </div>
+          <div class="selects" id="jo-selects">
+            <select id="f-amb" aria-label="Ambassadeur"><option value="">Tous les ambassadeurs</option></select>
+            <select id="f-prof" aria-label="Profession"><option value="">Toutes professions</option></select>
+            <select id="f-dept" aria-label="Département"><option value="">Tous départements</option></select>
+          </div>
+        </div>
+
+        <div id="webi-stats" hidden>
+          <div class="kpis" id="w-kpis"></div>
+          <article class="block"><h2>Entonnoir du questionnaire</h2><div id="w-funnel" class="funnel"></div></article>
+          <div class="duo">
+            <article class="block"><h2>Notes</h2><div id="w-rating" class="bars"></div></article>
+            <article class="block"><h2>Ont-ils appris des choses ?</h2><div id="w-learned" class="bars"></div></article>
+            <article class="block"><h2>Vont-ils essayer PandaSmile ?</h2><div id="w-try" class="bars"></div></article>
+            <article class="block"><h2>Profession</h2><div id="w-prof" class="bars"></div></article>
+            <article class="block"><h2>Comment ils ont connu le webinaire</h2><div id="w-source" class="bars"></div></article>
+            <article class="block"><h2>Durée du webinaire</h2><div id="w-length" class="bars"></div></article>
+            <article class="block"><h2>Départements</h2><div id="w-dept" class="bars"></div></article>
+          </div>
+          <article class="block"><h2>Sujets proposés pour le prochain webinaire</h2><ul class="feed" id="w-topics"></ul></article>
+          <article class="block"><h2>Messages pour le Dr Setbon</h2><ul class="feed" id="w-msgs"></ul></article>
+          <article class="block"><h2>Pas encore répondu</h2><div id="w-missing" class="wchips"></div></article>
+        </div>
+        <div id="jo-stats">
+        <div class="kpis" id="kpis"></div>
+
+        <article class="block">
+          <h2>Scans et inscrits par 15 minutes</h2>
+          <div class="chart-box"><canvas id="ch-time" aria-label="Scans et inscrits par tranche de 15 minutes"></canvas></div>
+          <p class="empty" id="ch-empty" hidden>Aucun scan sur cette période.</p>
+        </article>
+
+        <article class="block">
+          <h2>Entonnoir</h2>
+          <div id="funnel" class="funnel"></div>
+        </article>
+
+        <article class="block">
+          <h2>Classement des ambassadeurs</h2>
+          <div class="tbl-wrap"><table class="tbl" id="t-amb"></table></div>
+        </article>
+
+        <div class="duo">
+          <article class="block"><h2>Inscrits par profession</h2><div id="b-prof" class="bars"></div></article>
+          <article class="block"><h2>Inscrits par département</h2><div id="b-dept" class="bars"></div></article>
+          <article class="block"><h2>Patients en éducation fonctionnelle par an</h2><div id="b-pat" class="bars"></div></article>
+          <article class="block"><h2>Téléphones des scans</h2><div id="b-os" class="bars"></div></article>
+          <article class="block"><h2>Où le formulaire est abandonné</h2><div id="b-ab" class="bars"></div></article>
+          <article class="block"><h2>Villes des scans (approx.)</h2><div id="b-city" class="bars"></div></article>
+          <article class="block"><h2>Heures de pointe</h2><div id="b-hour" class="bars"></div></article>
+        </div>
+
+        <article class="block">
+          <h2>Derniers scans</h2>
+          <ul class="feed" id="feed"></ul>
+        </article>
+        </div>
+
+        <button type="button" class="cta export" id="export">Exporter tout en Excel</button>
+        <p class="note">L’export reprend les filtres choisis ci-dessus. Les données de plus de 3 mois sont supprimées automatiquement.</p>
+        <button type="button" class="danger" id="reset">Remettre les stats à zéro</button>
+        <p class="note" id="reset-note">Efface tous les scans et tous les inscrits (par exemple après les essais). Les codes des ambassadeurs ne changent pas.</p>
+      </div>
+    </section>
+
+    <section class="pane" id="pane-leads" aria-label="Inscrits" hidden>
+      <div class="pad">
+        <div class="search"><input id="q" type="search" placeholder="Rechercher un nom, un cabinet, une ville…" aria-label="Rechercher"></div>
+        <div class="row-between"><span id="leads-count" class="muted"></span>
+          <select id="sort" aria-label="Trier">
+            <option value="new">Plus récents</option>
+            <option value="old">Plus anciens</option>
+            <option value="name">Nom, A à Z</option>
+            <option value="dept">Département</option>
+          </select>
+        </div>
+        <ul class="leads" id="leads"></ul>
+      </div>
+    </section>
+
+    <section class="pane pane-map" id="pane-map" aria-label="Carte" hidden>
+      <div id="map"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+  </div>
+</main>
+
+<script src="/vendor/qrcode.js"></script>
+<script src="/vendor/chart.umd.js" defer></script>
+<script src="/vendor/leaflet.js" defer></script>
+<script src="/vendor/xlsx.full.min.js" defer></script>
+<script src="/app.js"></script>
+</body>
+</html>

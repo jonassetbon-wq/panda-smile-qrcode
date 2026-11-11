@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f19">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/img/icon.png">
+<title>PandaSmile · Votre avis sur le webinaire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout : une colonne mobile-first sur fond bleu nuit étoilé, carte formulaire claire au centre, panda en tête */
+:root{
+  color-scheme: dark;
+  --night:#0b0f19;      /* fond du site pandasmile.app (theme-color) */
+  --night-2:#131a2c;
+  --night-3:#1c2540;
+  --ink:#f4f6fb;
+  --muted:#a6b0c8;
+  --line:#2a3454;
+  --sky:#9aa6ff;        /* lavande du logo, éclaircie pour le fond nuit */
+  --lav:#5b68b1;        /* lavande exacte du logo */
+  --leaf:#7ed957;       /* vert bambou */
+  --sun:#ffd166;
+  --danger:#ff7a7a;
+  --display:"Fredoka", "Baloo 2", ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+  --body:"Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{
+  margin:0;background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 8%, #ffffffaa 50%, transparent 51%),
+    radial-gradient(1px 1px at 82% 14%, #ffffff88 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 64% 4%, #ffffff77 50%, transparent 51%),
+    radial-gradient(1px 1px at 30% 22%, #ffffff66 50%, transparent 51%),
+    radial-gradient(1px 1px at 92% 40%, #ffffff55 50%, transparent 51%),
+    radial-gradient(1px 1px at 6% 46%, #ffffff55 50%, transparent 51%),
+    radial-gradient(640px 420px at 50% -60px, #2e3778 0%, transparent 70%);
+  background-repeat:no-repeat;
+}
+.wrap{max-width:520px;margin:0 auto;padding-block:28px 48px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  display:flex;flex-direction:column;gap:22px}
+header{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.logo{width:min(260px,72%);height:auto}
+.panda{width:min(190px,48vw);height:auto;margin-block:-4px -6px;filter:drop-shadow(0 18px 30px #0009)}
+.promo{display:flex;flex-direction:column;gap:2px;background:var(--lav);color:#fff;border-radius:18px;padding:12px 18px;max-width:34ch;box-shadow:0 8px 24px #5b68b155}
+.promo strong{font-family:var(--display);font-weight:600;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sun)}
+.promo b{font-weight:800}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,6.5vw,2.2rem);line-height:1.12;margin:4px 0 0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--leaf)}
+.lede{color:var(--muted);margin:0;max-width:34ch;text-wrap:pretty}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--night);background:var(--sun);padding:5px 12px;border-radius:999px}
+
+.card{scroll-margin-top:12px;background:var(--night-2);border:1px solid var(--line);border-radius:24px;padding:22px 18px;box-shadow:0 20px 50px #0007}
+form{display:flex;flex-direction:column;gap:16px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:380px){.row{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+label{font-weight:700;font-size:.92rem}
+label .opt{color:var(--muted);font-weight:600}
+input,select{
+  width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--night-3);
+  border:2px solid transparent;border-radius:14px;padding:13px 14px;outline:none;transition:border-color .15s, background .15s;
+  -webkit-appearance:none;appearance:none}
+input::placeholder{color:#7d88a6}
+input:focus,select:focus{border-color:var(--sky);background:#222a50}
+.sel{position:relative}
+.sel::after{content:"";position:absolute;right:16px;top:50%;width:9px;height:9px;border-right:2.5px solid var(--sky);border-bottom:2.5px solid var(--sky);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+select{padding-right:40px}
+select:invalid{color:#7d88a6}
+option{color:#0b0f19;background:#fff}
+.field.err input,.field.err select{border-color:var(--danger)}
+.msg{font-size:.82rem;color:var(--danger);min-height:0}
+.msg:empty{display:none}
+
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:.85rem;color:var(--muted)}
+.consent input{width:22px;height:22px;flex:none;padding:0;border-radius:7px;margin-top:1px;appearance:auto;-webkit-appearance:checkbox;accent-color:var(--leaf)}
+
+button{font-family:var(--display);font-weight:600;font-size:1.15rem;letter-spacing:.2px;cursor:pointer;
+  color:var(--night);background:var(--leaf);border:0;border-radius:999px;padding:16px 20px;
+  box-shadow:0 6px 0 #4c9f2f;transition:transform .08s, box-shadow .08s}
+button:disabled{opacity:.6;cursor:wait}
+button:active{transform:translateY(4px);box-shadow:0 2px 0 #4c9f2f}
+button:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+
+.done{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 4px}
+.done h2{font-family:var(--display);font-size:1.6rem;margin:0}
+.done p{margin:0;color:var(--muted)}
+.patients{width:100%;display:flex;flex-direction:column;gap:12px;margin-top:8px;background:var(--night-3);border-radius:18px;padding:16px 14px}
+.patients .q{margin:0;color:var(--ink);font-weight:700}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choices button{font-family:var(--body);font-weight:700;font-size:.95rem;color:var(--ink);background:var(--night-2);border:2px solid var(--line);border-radius:14px;padding:12px 6px;box-shadow:none}
+.choices button:last-child{grid-column:1/-1}
+.choices button[aria-checked="true"]{border-color:var(--leaf);background:#1d2d22}
+.choices button:active{transform:none;box-shadow:none}
+.promo-panda{width:110px;height:auto;filter:drop-shadow(0 12px 22px #0009)}
+.code{display:flex;align-items:center;gap:10px;background:#fff;color:var(--night);border-radius:16px;padding:10px 10px 10px 18px;border:3px dashed var(--lav)}
+.code span{font-family:var(--display);font-weight:700;font-size:1.6rem;letter-spacing:.06em;user-select:all}
+.code .copy{font-size:.95rem;padding:9px 14px;background:var(--lav);color:#fff;box-shadow:none}
+.code .copy:active{transform:none}
+.exp{font-size:.88rem}
+.app-btn{display:block;width:100%;text-align:center;font-family:var(--display);font-weight:600;font-size:1.1rem;color:var(--night);background:var(--leaf);border-radius:999px;padding:15px 20px;text-decoration:none;box-shadow:0 6px 0 #4c9f2f;margin-top:6px}
+.recap{width:100%;text-align:left;background:var(--night-3);border-radius:16px;padding:14px 16px;font-size:.92rem;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}
+.recap dt{color:var(--muted)}
+.recap dd{margin:0;font-weight:700;overflow-wrap:anywhere}
+.ghost{background:transparent;color:var(--sky);box-shadow:none;font-size:1rem;padding:10px}
+.ghost:active{transform:none;box-shadow:none}
+
+.ac{position:relative}
+.ac-list{position:absolute;z-index:5;left:0;right:0;top:calc(100% + 6px);margin:0;padding:6px;list-style:none;background:var(--night-3);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 30px #0009}
+.ac-list li{padding:10px 12px;border-radius:10px;cursor:pointer;font-size:.92rem}
+.ac-list li small{display:block;color:var(--muted);font-size:.78rem}
+.ac-list li:hover,.ac-list li[aria-selected="true"]{background:#2a3560}
+footer{color:var(--muted);font-size:.8rem;display:flex;flex-direction:column;gap:14px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.foot p{margin:0}
+.linkbtn{all:unset;cursor:pointer;color:var(--sky);text-decoration:underline;text-underline-offset:3px;font-size:.8rem}
+.linkbtn:focus-visible{outline:2px solid var(--sun);outline-offset:3px;border-radius:4px}
+.sheet{position:fixed;inset:0;z-index:20;background:#05070dcc;display:flex;align-items:flex-end;justify-content:center;
+  padding-top:max(24px, env(safe-area-inset-top, 0px));padding-left:env(safe-area-inset-left, 0px);padding-right:env(safe-area-inset-right, 0px)}
+.sheet-in{background:var(--night-2);border:1px solid var(--line);border-radius:24px 24px 0 0;width:100%;max-width:560px;max-height:100%;overflow:auto;
+  padding-block:22px max(22px, env(safe-area-inset-bottom, 0px));padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px));
+  display:flex;flex-direction:column;gap:12px;font-size:.92rem;color:var(--ink)}
+.sheet-in h2:focus{outline:none}
+.sheet-in h2{font-family:var(--display);font-size:1.35rem;margin:0}
+.sheet-in h3{font-family:var(--display);font-weight:600;font-size:1.02rem;margin:6px 0 0;color:var(--sky)}
+.sheet-in p,.sheet-in ul{margin:0;color:var(--muted)}
+.sheet-in ul{padding-left:20px}
+.sheet-in .close{align-self:stretch;margin-top:8px}
+.axes{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.axes span{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:.78rem;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.panda{animation:bob 4s ease-in-out infinite}}
+@keyframes bob{50%{transform:translateY(-6px)}}
+/* Questionnaire webinaire : mêmes couleurs que le formulaire praticiens */
+.steps{display:flex;gap:6px;justify-content:center}
+.steps i{width:34px;height:6px;border-radius:6px;background:var(--line)}
+.steps i.on{background:var(--leaf)}
+.q{font-weight:700;margin:0}
+.q .opt{color:var(--muted);font-weight:600}
+.block{display:flex;flex-direction:column;gap:10px}
+.block .msg{margin-top:-4px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts button{font-family:var(--body);font-weight:700;font-size:.95rem;color:var(--ink);background:var(--night-3);border:2px solid var(--line);border-radius:14px;padding:11px 14px;box-shadow:none;text-align:left}
+.opts button[aria-checked="true"],.opts button[aria-pressed="true"]{border-color:var(--leaf);background:#1d2d22}
+.opts button:active{transform:none;box-shadow:none}
+.opts.col button{width:100%}
+.stars{display:flex;gap:6px}
+.stars button{flex:1;font-size:2rem;line-height:1;padding:10px 0;background:var(--night-3);border:2px solid var(--line);border-radius:14px;box-shadow:none;color:#3a4566}
+.stars button.on{color:var(--sun);border-color:var(--sun);background:#2b2a1d}
+.stars button:active{transform:none;box-shadow:none}
+.stars-lbl{font-size:.85rem;color:var(--muted);text-align:center;min-height:1.3em}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:52vh;overflow:auto;padding:2px}
+.names button{font-family:var(--body);font-weight:800;font-size:1rem;color:var(--ink);background:var(--night-3);border:2px solid var(--line);border-radius:14px;padding:13px 8px;box-shadow:none}
+.names button[aria-checked="true"]{border-color:var(--leaf);background:#1d2d22}
+.names button:active{transform:none;box-shadow:none}
+.names .none{grid-column:1/-1;color:var(--muted);text-align:center;font-size:.9rem;margin:6px 0}
+.nav{display:flex;gap:10px}
+.nav .back{flex:none;background:transparent;color:var(--sky);box-shadow:none;font-size:1rem;padding:12px 10px}
+.nav .back:active{transform:none;box-shadow:none}
+.nav .next{flex:1}
+.hello{text-align:center;margin:0;font-family:var(--display);font-size:1.3rem}
+.hello b{color:var(--leaf)}
+textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--night-3);border:2px solid transparent;border-radius:14px;padding:12px 14px;outline:none;resize:vertical;min-height:84px}
+textarea:focus{border-color:var(--sky);background:#222a50}
+.city{font-size:.85rem;color:var(--leaf);min-height:1.3em;margin:0}
+.reco{width:100%;text-align:left;display:flex;flex-direction:column;gap:10px;background:var(--night-3);border-radius:18px;padding:16px 14px}
+.reco input,.reco select{background:var(--night-2)}
+.small{font-size:.8rem;color:var(--muted);margin:0}
+.lede b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img class="logo" src="/img/logo.webp" alt="PandaSmile" width="720" height="223">
+    <span class="pill">Webinaire</span>
+    <h1>Votre avis en <em>2 minutes</em></h1>
+    <p class="lede" id="title">Prolonger la rééducation myofonctionnelle à la maison, avec le Dr Olivier Setbon.</p>
+    <div class="steps" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></div>
+  </header>
+
+  <section class="card" aria-live="polite">
+    <!-- 1. Qui êtes-vous -->
+    <div class="block" id="s1">
+      <p class="q">Touchez votre nom</p>
+      <input id="find" type="search" placeholder="Rechercher votre prénom" autocomplete="off" aria-label="Rechercher votre prénom">
+      <div class="names" id="names" role="radiogroup" aria-label="Inscrits au webinaire"></div>
+      <button type="button" class="ghost" id="not-listed">Je ne trouve pas mon nom</button>
+      <div class="reco" id="manual" hidden>
+        <div class="field"><label for="m-name">Prénom et nom</label><input id="m-name" autocomplete="name" placeholder="Camille Martin"><div class="msg"></div></div>
+        <div class="field"><label for="m-email">E-mail</label><input id="m-email" type="email" inputmode="email" autocomplete="email" placeholder="contact@cabinet.fr"><div class="msg"></div></div>
+      </div>
+      <p class="msg" id="s1-msg"></p>
+      <button type="button" class="next" id="go1">Commencer</button>
+    </div>
+
+    <!-- 2. Votre avis -->
+    <div class="block" id="s2" hidden>
+      <p class="hello">Merci <b id="hello-name"></b> !</p>
+      <div class="block" data-q="rating">
+        <p class="q">Quelle note donnez-vous au webinaire ?</p>
+        <div class="stars" id="stars"></div>
+        <p class="stars-lbl" id="stars-lbl"></p>
+        <p class="msg"></p>
+      </div>
+      <div class="block" data-q="learned">
+        <p class="q">Ce webinaire vous a-t-il appris des choses&nbsp;?</p>
+        <div class="opts" data-single="learned"></div><p class="msg"></p>
+      </div>
+      <div class="block">
+        <p class="q">La durée du webinaire était…</p>
+        <div class="opts" data-single="length"></div>
+      </div>
+      <div class="block" data-q="tryApp">
+        <p class="q">Allez-vous essayer PandaSmile avec vos patients ?</p>
+        <div class="opts col" data-single="tryApp"></div><p class="msg"></p>
+      </div>
+      <div class="nav"><button type="button" class="back" data-back="1">Retour</button><button type="button" class="next" id="go2">Continuer</button></div>
+    </div>
+
+    <!-- 3. Vous et votre cabinet -->
+    <div class="block" id="s3" hidden>
+      <div class="block" data-q="profession">
+        <p class="q">Votre profession</p>
+        <div class="opts col" data-single="profession" data-other="1"></div>
+        <input id="profession-other" placeholder="Votre profession" hidden><p class="msg"></p>
+      </div>
+      <div class="block" data-q="source">
+        <p class="q">Comment avez-vous connu ce webinaire ?</p>
+        <div class="opts" data-single="source" data-other="1"></div>
+        <input id="source-other" placeholder="Où l'avez-vous découvert ?" hidden><p class="msg"></p>
+      </div>
+      <div class="block" data-q="postcode">
+        <label class="q" for="cp">Code postal de votre cabinet</label>
+        <input id="cp" inputmode="numeric" maxlength="5" placeholder="89000" autocomplete="postal-code">
+        <p class="city" id="city"></p><p class="msg"></p>
+      </div>
+      <div class="block">
+        <label class="q" for="topic">Un sujet pour un prochain webinaire ? <span class="opt">(facultatif)</span></label>
+        <textarea id="topic" maxlength="400" placeholder="Par exemple : la déglutition chez les tout-petits"></textarea>
+      </div>
+      <div class="block">
+        <label class="q" for="message">Un mot pour le Dr Setbon ? <span class="opt">(facultatif)</span></label>
+        <textarea id="message" maxlength="600"></textarea>
+      </div>
+      <p class="small">Vos réponses servent uniquement à améliorer nos webinaires et à vous recontacter au sujet de PandaSmile. Elles sont conservées 3 mois maximum.</p>
+      <p class="msg" id="send-msg"></p>
+      <div class="nav"><button type="button" class="back" data-back="2">Retour</button><button type="button" class="next" id="go3">Envoyer mes réponses</button></div>
+    </div>
+
+    <!-- 4. Merci : recommandation puis code promo -->
+    <div class="done" id="s4" hidden>
+      <svg width="64" height="64" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="34" fill="#7ed957"/><path d="M22 37l9 9 19-20" fill="none" stroke="#0b0f19" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h2>Merci pour vos réponses</h2>
+      <div class="reco" id="reco">
+        <p class="q">Un confrère à inviter au prochain webinaire ? <span class="opt">(facultatif)</span></p>
+        <div class="field"><label for="r-prenom">Son prénom</label><input id="r-prenom" autocomplete="off" placeholder="Camille"><div class="msg"></div></div>
+        <div class="field"><label for="r-email">Son e-mail</label><input id="r-email" type="email" inputmode="email" autocomplete="off" placeholder="camille@cabinet.fr"><div class="msg"></div></div>
+        <div class="field"><label for="r-prof">Sa profession</label><div class="sel"><select id="r-prof"><option value="">Choisir (facultatif)</option><option>Orthodontiste</option><option>Orthophoniste</option><option>Chirurgien-dentiste</option><option>Kinésithérapeute maxillo-facial</option><option>Autre</option></select></div></div>
+        <p class="small">Nous le contacterons une seule fois, pour l'inviter au prochain webinaire.</p>
+      </div>
+      <button type="button" id="to-promo" style="width:100%">Voir mon code promo</button>
+    </div>
+
+    <div class="done reward" id="s5" hidden>
+      <img src="/img/panda.webp" alt="" width="120" height="180" class="promo-panda">
+      <h2>Votre cadeau</h2>
+      <p>Votre code pour <b>3 mois de PandaSmile Pro offerts</b> :</p>
+      <div class="code"><span id="promo-code">PANDAJO2026</span><button type="button" class="copy" id="copy-code">Copier</button></div>
+      <p class="exp">Copiez le code, puis saisissez-le après votre inscription sur PandaSmile Pro.</p>
+      <a class="app-btn" id="open-pro" href="https://pro.pandasmile.app" target="_blank" rel="noopener">Activer mes 3 mois gratuits</a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="foot"><p>© PandaSmile · pandasmile.app</p></div>
+  </footer>
+</div>
+
+<script>
+const CH={
+  learned:["Un peu","Beaucoup","Énormément"],
+  length:["Trop courte","Parfaite","Trop longue"],
+  tryApp:["Oui, dès maintenant","Je veux d'abord en savoir plus","Pas pour l'instant"],
+  profession:["Orthodontiste","Orthophoniste","Chirurgien-dentiste","Kinésithérapeute maxillo-facial","Autre"],
+  source:["LinkedIn","Instagram","Facebook","Un confrère","E-mail ou newsletter","Orthoplus","Recherche Internet","Autre"]};
+const STAR_LBL=['','Décevant','Moyen','Bien','Très bien','Excellent'];
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SID=Math.random().toString(36).slice(2,12);
+const A={who:'',name:'',email:'',rating:0,learned:'',length:'',tryApp:'',profession:'',source:''};
+let people=[],startedAt=null,ref='',rid='',step=1;
+function track(type){try{const b=JSON.stringify({type,who:A.who,s:SID});navigator.sendBeacon?navigator.sendBeacon('/api/webi/event',new Blob([b],{type:'text/plain'})):fetch('/api/webi/event',{method:'POST',body:b,keepalive:true})}catch{}}
+track('view');
+
+function show(n){step=n;for(let i=1;i<=5;i++)$('#s'+i).hidden=i!==n;
+  document.querySelectorAll('.steps i').forEach((x,i)=>x.classList.toggle('on',i<Math.min(n,4)));
+  $('.card').scrollIntoView({behavior:'smooth',block:'start'});}
+
+/* 1. Liste des inscrits */
+function drawNames(){const q=$('#find').value.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const list=people.filter(p=>!q||p.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q));
+  $('#names').innerHTML=list.length?list.map(p=>`<button type="button" role="radio" aria-checked="${p.id===A.who}" data-id="${esc(p.id)}">${esc(p.label)}</button>`).join(''):'<p class="none">Aucun nom ne correspond.</p>';}
+fetch('/api/webi/people').then(r=>r.json()).then(d=>{people=d.people||[];drawNames()}).catch(()=>{$('#s1-msg').textContent='Impossible de charger la liste. Vérifiez votre connexion.'});
+$('#find').addEventListener('input',drawNames);
+$('#names').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;A.who=b.dataset.id;A.name='';$('#manual').hidden=true;$('#s1-msg').textContent='';drawNames();track('pick')});
+$('#not-listed').addEventListener('click',()=>{A.who='';drawNames();$('#manual').hidden=false;$('#m-name').focus()});
+const okEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+function fieldErr(el,t){const f=el.closest('.field');f.classList.toggle('err',!!t);f.querySelector('.msg').textContent=t;return !t}
+$('#go1').addEventListener('click',async()=>{
+  const m=$('#s1-msg');m.textContent='';
+  if(!A.who){
+    if($('#manual').hidden){m.textContent='Touchez votre nom dans la liste.';return}
+    const n=$('#m-name').value.trim(),em=$('#m-email').value.trim();
+    const a=fieldErr($('#m-name'),n?'':'Indiquez votre prénom et votre nom.'),b=fieldErr($('#m-email'),okEmail(em)?'':'Vérifiez l’adresse e-mail.');
+    if(!a||!b)return;A.name=n;A.email=em;
+  }
+  startedAt=startedAt||new Date().toISOString();
+  $('#hello-name').textContent=A.who?people.find(p=>p.id===A.who).label.split(' ')[0]:A.name.split(' ')[0];
+  if(A.who){try{const r=await fetch('/api/webi/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status',who:A.who})}).then(r=>r.json());if(r.answered){show(5);return}}catch{}}
+  show(2);
+});
+
+/* 2-3. Boutons de réponse */
+const stars=$('#stars');stars.innerHTML=[1,2,3,4,5].map(i=>`<button type="button" data-v="${i}" aria-label="${i} sur 5">★</button>`).join('');
+stars.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;A.rating=+b.dataset.v;
+  stars.querySelectorAll('button').forEach(x=>x.classList.toggle('on',+x.dataset.v<=A.rating));$('#stars-lbl').textContent=STAR_LBL[A.rating];clearErr('rating')});
+document.querySelectorAll('[data-single]').forEach(box=>{const k=box.dataset.single;
+  box.innerHTML=CH[k].map(v=>`<button type="button" role="radio" aria-checked="false" data-v="${esc(v)}">${esc(v)}</button>`).join('');
+  box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;A[k]=b.dataset.v;
+    box.querySelectorAll('button').forEach(x=>x.setAttribute('aria-checked',String(x===b)));
+    const o=$('#'+k+'-other');if(o){o.hidden=A[k]!=='Autre';if(!o.hidden)o.focus()}clearErr(k)});});
+function err(k,t){const bl=document.querySelector(`[data-q="${k}"]`);bl.querySelector('.msg:last-of-type').textContent=t;return bl}
+function clearErr(k){const bl=document.querySelector(`[data-q="${k}"]`);if(bl)bl.querySelectorAll('.msg').forEach(m=>m.textContent='')}
+document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>show(+b.dataset.back)));
+$('#go2').addEventListener('click',()=>{let first=null;
+  if(!A.rating){const _e=err('rating','Choisissez une note de 1 à 5.');first=first||_e}
+  if(!A.learned){const _e=err('learned','Choisissez une réponse.');first=first||_e}
+  if(!A.tryApp){const _e=err('tryApp','Choisissez une réponse.');first=first||_e}
+  if(first){first.scrollIntoView({behavior:'smooth',block:'center'});return}
+  show(3)});
+
+/* Code postal → ville */
+let cpTimer;$('#cp').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,5);$('#city').textContent='';clearErr('postcode');clearTimeout(cpTimer);
+  if(e.target.value.length===5)cpTimer=setTimeout(async()=>{try{const f=(await fetch('https://api-adresse.data.gouv.fr/search/?type=municipality&limit=1&q='+e.target.value).then(r=>r.json())).features?.[0];$('#city').textContent=f?'📍 '+f.properties.city:''}catch{}},200)});
+
+$('#go3').addEventListener('click',async()=>{let first=null;
+  const prof=A.profession==='Autre'?$('#profession-other').value.trim():A.profession;
+  const src=A.source==='Autre'?$('#source-other').value.trim():A.source;
+  if(!prof){const _e=err('profession',A.profession==='Autre'?'Écrivez votre profession.':'Choisissez votre profession.');first=first||_e}
+  if(!src){const _e=err('source',A.source==='Autre'?'Écrivez où vous l’avez découvert.':'Choisissez une réponse.');first=first||_e}
+  if(!/^\d{5}$/.test($('#cp').value)){const _e=err('postcode','Le code postal fait 5 chiffres.');first=first||_e}
+  if(first){first.scrollIntoView({behavior:'smooth',block:'center'});return}
+  const btn=$('#go3'),sm=$('#send-msg');btn.disabled=true;btn.textContent='Envoi…';sm.textContent='';
+  try{const r=await fetch('/api/webi/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'answer',who:A.who,name:A.name,email:A.email,rating:A.rating,learned:A.learned,length:A.length,tryApp:A.tryApp,profession:prof,source:src,postcode:$('#cp').value,topic:$('#topic').value,message:$('#message').value,startedAt})});
+    const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error);ref=d.ref;rid=d.id;
+  }catch{sm.textContent='L’envoi n’a pas abouti. Vérifiez votre connexion puis réessayez.';btn.disabled=false;btn.textContent='Envoyer mes réponses';return}
+  btn.disabled=false;btn.textContent='Envoyer mes réponses';
+  $('#reco').hidden=A.rating<4;show(A.rating<4?5:4)});
+
+/* 4. Recommandation */
+$('#to-promo').addEventListener('click',async()=>{
+  const p=$('#r-prenom').value.trim(),em=$('#r-email').value.trim();
+  if(em||p){if(!fieldErr($('#r-email'),okEmail(em)?'':'Vérifiez l’adresse e-mail de votre confrère.'))return;
+    const b=$('#to-promo');b.disabled=true;
+    try{await fetch('/api/webi/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'referral',ref,id:rid,prenom:p,email:em,profession:$('#r-prof').value})})}catch{}
+    b.disabled=false}
+  show(5)});
+
+/* 5. Code promo */
+$('#copy-code').addEventListener('click',async e=>{const b=e.currentTarget;track('copy');
+  try{await navigator.clipboard.writeText('PANDAJO2026');b.textContent='Copié ✓'}catch{const r=document.createRange();r.selectNodeContents($('#promo-code'));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Sélectionné'}
+  setTimeout(()=>b.textContent='Copier',2000)});
+$('#open-pro').addEventListener('click',()=>{track('open');try{navigator.clipboard.writeText('PANDAJO2026')}catch{}});
+</script>
+</body>
+</html>
