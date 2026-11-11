@@ -13,6 +13,10 @@ const PROFS = Object.keys(PROF_COLORS);
 const FIELD_NAMES = { prenom: 'Prénom', nom: 'Nom', profession: 'Profession', cabinet: 'Cabinet / société', adresse: 'Adresse', tel: 'Téléphone', email: 'E-mail', rgpd: 'Case RGPD' };
 
 let session = null;
+/* Catégorie affichée dans l'admin : journée de l'orthodontie (JO) ou webinaire (Webi). */
+let CAT = 'jo';
+try { CAT = localStorage.getItem('ps-cat') === 'webi' ? 'webi' : 'jo'; } catch {}
+const W_COLORS = { ...PROF_COLORS, 'Kinésithérapeute maxillo-facial': '#c49bff' };
 try { session = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
 
 /* ---------- Connexion ---------- */
@@ -61,12 +65,27 @@ function showApp() {
   tabs = admin ? [['pane-qr', 'QR code'], ['pane-stats', 'Stats'], ['pane-leads', 'Inscrits'], ['pane-map', 'Carte']] : [['pane-qr', 'QR code']];
   ['pane-stats', 'pane-leads', 'pane-map'].forEach((id) => ($('#' + id).hidden = !admin));
   $('#tabs').hidden = !admin;
+  $('#cat').hidden = !admin;
+  setCat(CAT, true);
   $('#swipe-hint').hidden = !admin;
   $('#tabs').innerHTML = tabs.map(([, l], i) => `<button type="button" role="tab" data-i="${i}" class="${i === 0 ? 'on' : ''}">${l}</button>`).join('');
   drawQR();
   keepAwake();
   if (admin) startLive();
 }
+function setCat(c, quiet) {
+  CAT = c;
+  try { localStorage.setItem('ps-cat', c); } catch {}
+  document.querySelectorAll('#cat button').forEach((b) => { b.classList.toggle('on', b.dataset.v === c); b.setAttribute('aria-checked', String(b.dataset.v === c)); });
+  const w = c === 'webi';
+  $('#webi-stats').hidden = !w; $('#jo-stats').hidden = w; $('#jo-selects').hidden = w;
+  $('#q').placeholder = w ? 'Rechercher un nom, une profession, une ville…' : 'Rechercher un nom, un cabinet, une ville…';
+  $('#reset-note').textContent = w ? 'Efface toutes les réponses au questionnaire du webinaire. Les stats de la journée de l’orthodontie ne changent pas.' : 'Efface tous les scans et tous les inscrits de la journée de l’orthodontie (par exemple après les essais). Le webinaire et les codes des ambassadeurs ne changent pas.';
+  $('#export').textContent = w ? 'Exporter le webinaire en Excel' : 'Exporter tout en Excel';
+  mapFitted = false;
+  if (!quiet) render();
+}
+$('#cat').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && b.dataset.v !== CAT) setCat(b.dataset.v); });
 $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) panes.scrollTo({ left: +b.dataset.i * panes.clientWidth, behavior: 'smooth' }); });
 panes.addEventListener('scroll', () => {
   const i = Math.round(panes.scrollLeft / panes.clientWidth);
@@ -175,6 +194,7 @@ const nameOf = (id) => DATA.people.find((p) => p.id === id)?.label || (id ? id :
 let chart;
 function render() {
   if (!DATA) return;
+  if (CAT === 'webi') { renderWebi(); renderLeads(); renderMap(); return; }
   const { scans, events, leads } = filtered();
   const uniq = new Set(scans.map((s) => s.vid)).size;
   const starts = new Set(events.filter((e) => e.type === 'start').map((e) => e.s || e.id)).size;
@@ -278,6 +298,7 @@ $('#q').addEventListener('input', renderLeads);
 $('#sort').addEventListener('change', renderLeads);
 function renderLeads() {
   if (!DATA) return;
+  if (CAT === 'webi') return renderWebiLeads();
   const q = $('#q').value.trim().toLowerCase();
   let rows = filtered().leads.filter((l) => !q || [l.prenom, l.nom, l.cabinet, l.adresse, l.email, l.tel, l.geo?.city, l.profession, nameOf(l.a)].join(' ').toLowerCase().includes(q));
   const s = $('#sort').value;
@@ -299,6 +320,14 @@ async function adminPost(body) {
   return r.ok;
 }
 $('#leads').addEventListener('click', async (e) => {
+  const wb = e.target.closest('.del-webi');
+  if (wb) {
+    if (!armed(wb, 'Appuie encore pour supprimer définitivement')) return;
+    wb.disabled = true; wb.textContent = 'Suppression…';
+    if (await adminPost({ webiId: wb.dataset.id, t: wb.dataset.t })) { DATA.webi = DATA.webi.filter((x) => x.id !== wb.dataset.id); render(); load(); }
+    else { wb.disabled = false; wb.textContent = 'Échec, réessaie'; }
+    return;
+  }
   const b = e.target.closest('.del'); if (!b) return;
   if (!armed(b, 'Appuie encore pour supprimer définitivement')) return;
   b.disabled = true; b.textContent = 'Suppression…';
@@ -309,7 +338,7 @@ $('#reset').addEventListener('click', async (e) => {
   const b = e.currentTarget;
   if (!armed(b, 'Appuie encore : tout sera effacé')) return;
   b.disabled = true; b.textContent = 'Effacement…';
-  const ok = await adminPost({ reset: true });
+  const ok = await adminPost({ reset: true, cat: CAT });
   b.disabled = false; b.textContent = ok ? 'Stats remises à zéro ✓' : 'Échec, réessaie';
   setTimeout(() => (b.textContent = 'Remettre les stats à zéro'), 3000);
   load();
@@ -341,16 +370,18 @@ function renderMap(fit) {
   if (!map || !DATA) return;
   setTimeout(() => map.invalidateSize(), 50);
   layer.clearLayers();
-  const leads = filtered().leads.filter((l) => l.geo?.lat);
+  const leads = mapItems().filter((l) => l.geo?.lat);
+  const COL = CAT === 'webi' ? W_COLORS : PROF_COLORS;
   const z = map.getZoom();
   const level = z <= 7 ? 'dept' : z <= 10 ? 'city' : 'point';
   if (level === 'point') {
     leads.forEach((l) => {
-      L.circleMarker([l.geo.lat, l.geo.lon], { radius: 8, color: '#0b0f19', weight: 2, fillColor: PROF_COLORS[l.profession] || '#fff', fillOpacity: 0.95 })
-        .bindPopup(`<b>${esc(l.prenom)} ${esc(l.nom)}</b><br>${esc(l.profession)}<br>${l.cabinet ? esc(l.cabinet) + '<br>' : ''}${esc(l.geo.label || l.adresse)}<br><small>Ambassadeur : ${esc(nameOf(l.a))}</small>`)
+      L.circleMarker([l.geo.lat, l.geo.lon], { radius: 8, color: '#0b0f19', weight: 2, fillColor: COL[l.profession] || '#fff', fillOpacity: 0.95 })
+        .bindPopup(`<b>${esc(l.prenom)} ${esc(l.nom)}</b><br>${esc(l.profession)}<br>${l.cabinet ? esc(l.cabinet) + '<br>' : ''}${esc(l.geo.label || l.adresse)}<br><small>${l.src ? esc(l.src) : 'Ambassadeur : ' + esc(nameOf(l.a))}</small>`)
         .addTo(layer);
     });
-    $('#legend').innerHTML = '<b>Un point par cabinet</b>' + PROFS.map((p) => `<span><i style="background:${PROF_COLORS[p]}"></i>${p}</span>`).join('');
+    const profs = CAT === 'webi' ? [...new Set(leads.map((l) => l.profession))] : PROFS;
+    $('#legend').innerHTML = `<b>${CAT === 'webi' ? 'Webinaire · un point par répondant' : 'Un point par cabinet'}</b>` + profs.map((p) => `<span><i style="background:${COL[p] || '#888'}"></i>${esc(p)}</span>`).join('');
   } else {
     // Regroupe les cercles qui se chevauchent à l'écran : un seul cercle avec le total de la zone.
     let groups = groupLeads(leads, level).map((g) => ({ ...g, labels: [g.label] }));
@@ -375,14 +406,14 @@ function renderMap(fit) {
     groups.sort((a, b) => b.items.length - a.items.length).forEach((g) => {
       const n = g.items.length;
       const [lat, lon] = center(g);
-      const byProf = count(g.items, (l) => l.profession).map(([p, v]) => `<span style="color:${PROF_COLORS[p]}">●</span> ${esc(p)} : <b>${v}</b>`).join('<br>');
+      const byProf = count(g.items, (l) => l.profession).map(([p, v]) => `<span style="color:${COL[p] || '#888'}">●</span> ${esc(p)} : <b>${v}</b>`).join('<br>');
       L.circleMarker([lat, lon], { radius: rad(n), color: '#ffffff', weight: 1.5, fillColor: '#e5484d', fillOpacity: 0.78 })
         .bindTooltip(String(n), { permanent: true, direction: 'center', className: 'cnt' })
-        .bindPopup(`<b>${esc(g.label)}</b><br>${n} inscrit${n > 1 ? 's' : ''}<br>${byProf}`)
+        .bindPopup(`<b>${esc(g.label)}</b><br>${n} ${CAT === 'webi' ? 'répondant' : 'inscrit'}${n > 1 ? 's' : ''}<br>${byProf}`)
         .addTo(layer);
     });
     const steps = [...new Set([max, Math.ceil(max / 2), 1])].filter((v) => v > 0);
-    $('#legend').innerHTML = `<b>Inscrits par zone${level === 'dept' ? ' (départements)' : ' (villes)'}</b>` +
+    $('#legend').innerHTML = `<b>${CAT === 'webi' ? 'Webinaire · répondants' : 'Inscrits'} par zone${level === 'dept' ? ' (départements)' : ' (villes)'}</b>` +
       steps.map((v) => `<span><i style="width:${Math.round(rad(v) * 1.1)}px;height:${Math.round(rad(v) * 1.1)}px;background:#e5484dc7;border:1px solid #fff"></i>${v}</span>`).join('') +
       '<small>Zoome pour le détail</small>';
   }
@@ -392,6 +423,7 @@ function renderMap(fit) {
 /* ---------- Export Excel ---------- */
 $('#export').addEventListener('click', () => {
   if (!DATA || !window.XLSX) return;
+  if (CAT === 'webi') return exportWebi();
   const { scans, events, leads } = filtered();
   const wb = XLSX.utils.book_new();
   const add = (name, rows, widths) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Aucune donnée' }]); if (rows.length) ws['!autofilter'] = { ref: ws['!ref'] }; if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
@@ -411,6 +443,87 @@ $('#export').addEventListener('click', () => {
   const stamp = new Date().toLocaleString('fr-FR', { timeZone: TZ }).replace(/[/:]/g, '-').replace(/\s/g, '_');
   XLSX.writeFile(wb, `PandaSmile_stats_${stamp}.xlsx`);
 });
+
+/* ---------- Webinaire ---------- */
+const STARS = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+const att = (id) => (DATA.webinar?.attendees || []).find((a) => a.id === id);
+function webiFiltered() {
+  const from = since();
+  const inP = (x) => Date.parse(x.t) >= from;
+  return { answers: (DATA.webi || []).filter(inP).sort((a, b) => b.t.localeCompare(a.t)), events: (DATA.webiEvents || []).filter(inP) };
+}
+function mapItems() {
+  if (CAT !== 'webi') return filtered().leads;
+  return webiFiltered().answers.map((r) => ({ prenom: r.name, nom: '', profession: r.profession, cabinet: '', geo: r.geo, adresse: r.postcode, a: '', src: 'Webinaire · note ' + r.rating + '/5' }));
+}
+const fixed = (arr, fn, order) => { const c = new Map(count(arr, fn)); const extra = [...c.keys()].filter((k) => !order.includes(k)); return [...order, ...extra].map((k) => [k, c.get(k) || 0]).filter(([k, v]) => v || order.includes(k)); };
+function renderWebi() {
+  const { answers, events } = webiFiltered();
+  const total = (DATA.webinar?.attendees || []).length;
+  const listed = answers.filter((r) => r.listed).length;
+  const avg = answers.length ? (answers.reduce((s, r) => s + r.rating, 0) / answers.length).toFixed(1).replace('.', ',') : '–';
+  const refs = answers.filter((r) => r.referral).length;
+  const sess = (t) => new Set(events.filter((e) => e.type === t).map((e) => e.s || e.id)).size;
+  const promo = new Set(events.filter((e) => e.type === 'copy' || e.type === 'open').map((e) => e.s || e.id)).size;
+  $('#w-kpis').innerHTML = [
+    [`${listed} / ${total}`, 'Inscrits qui ont répondu'],
+    [pct(listed, total) + ' %', 'Taux de réponse'],
+    [avg + (answers.length ? ' / 5' : ''), 'Note moyenne', 'hl'],
+    [answers.filter((r) => r.tryApp === 'Oui, dès maintenant').length, 'Veulent essayer PandaSmile'],
+    [refs, 'Confrères recommandés'],
+    [promo, 'Codes promo copiés ou ouverts'],
+  ].map(([v, l, c]) => `<div class="kpi ${c || ''}"><b>${v}</b><span>${l}</span></div>`).join('');
+  const steps = [['Page ouverte', sess('view')], ['Nom choisi', sess('pick')], ['Questionnaire envoyé', answers.length], ['Code promo copié', promo]];
+  const top = Math.max(1, ...steps.map((x) => x[1]));
+  $('#w-funnel').innerHTML = steps.map(([l, v], i) => `<div class="fstep"><span>${l}</span><span class="t"><i style="width:${Math.max(2, (v / top) * 100)}%"></i></span><span class="v">${v}${i && steps[i - 1][1] ? ` <small>${pct(v, steps[i - 1][1])} %</small>` : ''}</span></div>`).join('');
+  bars('#w-rating', [5, 4, 3, 2, 1].map((n) => [STARS(n), answers.filter((r) => r.rating === n).length]), null, 5, 'Pas encore de réponse.');
+  bars('#w-learned', fixed(answers, (r) => r.learned, ['Beaucoup', 'Quelques-unes', 'Pas vraiment']), null, 5, 'Pas encore de réponse.');
+  bars('#w-liked', count(answers.flatMap((r) => [...r.liked, ...(r.likedOther ? ['Autre : ' + r.likedOther] : [])]), (x) => x), null, 10, 'Pas encore de réponse.');
+  bars('#w-try', fixed(answers, (r) => r.tryApp, ['Oui, dès maintenant', "Je veux d'abord en savoir plus", "Pas pour l'instant"]), { 'Oui, dès maintenant': '#7ed957', "Je veux d'abord en savoir plus": '#ffd166', "Pas pour l'instant": '#a6b0c8' }, 5, 'Pas encore de réponse.');
+  bars('#w-prof', count(answers, (r) => r.profession), W_COLORS, 8, 'Pas encore de réponse.');
+  bars('#w-source', count(answers, (r) => (r.source === 'Autre' ? 'Autre : ' + r.sourceOther : r.source)), null, 10, 'Pas encore de réponse.');
+  bars('#w-length', fixed(answers.filter((r) => r.length), (r) => r.length, ['Trop courte', 'Parfaite', 'Trop longue']), null, 5, 'Pas encore de réponse.');
+  bars('#w-dept', count(answers, (r) => (r.geo?.deptCode ? `${r.geo.deptCode} · ${r.geo.deptName}` : 'Code postal ' + r.postcode)), null, 8, 'Pas encore de réponse.');
+  const lst = (sel, key, empty) => { const xs = answers.filter((r) => r[key]); $(sel).innerHTML = xs.length ? xs.map((r) => `<li><span><b>${esc(r.name)}</b> · ${esc(r[key])}</span></li>`).join('') : `<li class="muted">${empty}</li>`; };
+  lst('#w-topics', 'topic', 'Aucun sujet proposé pour l’instant.');
+  lst('#w-msgs', 'message', 'Aucun message pour l’instant.');
+  const done = new Set((DATA.webi || []).map((r) => r.attendee));
+  const miss = (DATA.webinar?.attendees || []).filter((a) => !done.has(a.id));
+  $('#w-missing').innerHTML = miss.length ? miss.map((a) => `<span>${esc(a.name)}</span>`).join('') : '<p class="empty">Tout le monde a répondu.</p>';
+}
+function renderWebiLeads() {
+  const q = $('#q').value.trim().toLowerCase();
+  let rows = webiFiltered().answers.filter((r) => !q || [r.name, r.email, r.profession, r.geo?.city, r.postcode, r.source, r.referral?.email].join(' ').toLowerCase().includes(q));
+  const s = $('#sort').value;
+  rows.sort(s === 'old' ? (a, b) => a.t.localeCompare(b.t) : s === 'name' ? (a, b) => a.name.localeCompare(b.name, 'fr') : s === 'dept' ? (a, b) => (a.geo?.deptCode || 'zz').localeCompare(b.geo?.deptCode || 'zz') : (a, b) => b.t.localeCompare(a.t));
+  $('#leads-count').textContent = `${rows.length} réponse${rows.length > 1 ? 's' : ''} au webinaire${F.period !== 'all' ? ' sur la période' : ''}`;
+  const dd = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
+  const items = rows.map((r) => `<li><details class="lead"><summary><span class="pdot" style="background:${W_COLORS[r.profession] || '#888'}"></span><span class="nm">${esc(r.name)}</span><span class="when">${frDate(r.t)}</span><span class="sub"><span class="stars-s">${STARS(r.rating)}</span> · ${esc(r.profession)}${r.geo?.city ? ' · ' + esc(r.geo.city) : ''}${r.referral ? ' · 1 confrère recommandé' : ''}</span></summary>
+    <dl>${dd('E-mail', r.email)}${dd('Note', r.rating + ' / 5')}${dd('A appris', r.learned)}${dd('A aimé', [...r.liked, r.likedOther].filter(Boolean).join(', '))}${dd('Durée', r.length)}${dd('PandaSmile', r.tryApp)}${dd('Connu par', r.source === 'Autre' ? 'Autre : ' + r.sourceOther : r.source)}${dd('Cabinet', r.geo ? `${r.geo.city} (${r.postcode}) · ${r.geo.deptName}` : r.postcode)}${dd('Sujet proposé', r.topic)}${dd('Message', r.message)}${r.referral ? dd('Confrère recommandé', [r.referral.prenom, r.referral.email, r.referral.profession].filter(Boolean).join(' · ')) : ''}${r.listed ? '' : dd('Liste', 'Absent de la liste des inscrits')}${dd('Rempli en', Number.isFinite(r.durationSec) ? r.durationSec + ' s' : '')}</dl>
+    <button type="button" class="del del-webi" data-id="${esc(r.id)}" data-t="${esc(r.t)}">Supprimer cette réponse</button></details></li>`);
+  const refs = rows.filter((r) => r.referral);
+  const extra = refs.length ? `<li><p class="sec-title">Confrères recommandés (${refs.length})</p></li>` + refs.map((r) => `<li><details class="lead"><summary><span class="pdot" style="background:#ffd166"></span><span class="nm">${esc(r.referral.prenom || r.referral.email)}</span><span class="when">${frDate(r.referral.t || r.t)}</span><span class="sub">${esc(r.referral.email)}${r.referral.profession ? ' · ' + esc(r.referral.profession) : ''} · recommandé par ${esc(r.name)}</span></summary></details></li>`).join('') : '';
+  $('#leads').innerHTML = items.length ? items.join('') + extra : '<li class="muted">Aucune réponse au questionnaire pour l’instant.</li>';
+}
+function exportWebi() {
+  const { answers } = webiFiltered();
+  const wb = XLSX.utils.book_new();
+  const add = (name, rows, widths) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Aucune donnée' }]); if (rows.length) ws['!autofilter'] = { ref: ws['!ref'] }; if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
+  const dt = (t) => new Date(t).toLocaleString('fr-FR', { timeZone: TZ });
+  add('Réponses', answers.map((r) => ({ 'Date et heure': dt(r.t), Nom: r.name, 'E-mail': r.email, 'Dans la liste': r.listed ? 'Oui' : 'Non', Note: r.rating, 'A appris': r.learned, 'A aimé': [...r.liked, r.likedOther].filter(Boolean).join(' ; '), Durée: r.length, 'Essayer PandaSmile': r.tryApp, Profession: r.profession, 'Connu par': r.source === 'Autre' ? 'Autre : ' + r.sourceOther : r.source, 'Code postal': r.postcode, Ville: r.geo?.city || '', Département: r.geo ? `${r.geo.deptCode} ${r.geo.deptName}` : '', 'Sujet proposé': r.topic, Message: r.message, 'Confrère : prénom': r.referral?.prenom || '', 'Confrère : e-mail': r.referral?.email || '', 'Confrère : profession': r.referral?.profession || '', 'Rempli en (s)': r.durationSec ?? '' })), [18, 22, 28, 8, 6, 14, 40, 12, 26, 18, 18, 8, 16, 20, 30, 30, 14, 26, 18, 10]);
+  const done = new Set((DATA.webi || []).map((r) => r.attendee));
+  add('Pas encore répondu', (DATA.webinar?.attendees || []).filter((a) => !done.has(a.id)).map((a) => ({ Nom: a.name, 'E-mail': a.email })), [24, 32]);
+  add('Confrères recommandés', answers.filter((r) => r.referral).map((r) => ({ Prénom: r.referral.prenom, 'E-mail': r.referral.email, Profession: r.referral.profession, 'Recommandé par': r.name, Date: dt(r.referral.t || r.t) })), [14, 30, 22, 22, 18]);
+  add('Synthèse', [
+    ...[5, 4, 3, 2, 1].map((n) => ({ Question: 'Note', Réponse: n + ' / 5', Nombre: answers.filter((r) => r.rating === n).length })),
+    ...count(answers, (r) => r.learned).map(([k, v]) => ({ Question: 'A appris', Réponse: k, Nombre: v })),
+    ...count(answers, (r) => r.tryApp).map(([k, v]) => ({ Question: 'Essayer PandaSmile', Réponse: k, Nombre: v })),
+    ...count(answers, (r) => r.profession).map(([k, v]) => ({ Question: 'Profession', Réponse: k, Nombre: v })),
+    ...count(answers, (r) => (r.source === 'Autre' ? 'Autre : ' + r.sourceOther : r.source)).map(([k, v]) => ({ Question: 'Connu par', Réponse: k, Nombre: v })),
+  ], [22, 36, 9]);
+  const stamp = new Date().toLocaleString('fr-FR', { timeZone: TZ }).replace(/[/:]/g, '-').replace(/\s/g, '_');
+  XLSX.writeFile(wb, `PandaSmile_webinaire_${stamp}.xlsx`);
+}
 
 /* ---------- Démarrage ---------- */
 if (session?.token) showApp(); else showLogin();

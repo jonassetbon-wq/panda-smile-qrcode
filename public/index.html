@@ -38,6 +38,7 @@
   <header class="head">
     <img class="head-logo" src="/img/logo.webp" alt="PandaSmile" width="900" height="279">
     <nav class="tabs" id="tabs" role="tablist"></nav>
+    <div class="cat" id="cat" role="radiogroup" aria-label="Catégorie" hidden><button type="button" data-v="jo" title="Journée de l’orthodontie">JO</button><button type="button" data-v="webi" title="Webinaire">Webi</button></div>
     <span class="me"><b id="me-name"></b><button type="button" id="logout" class="out">Quitter</button></span>
   </header>
   <div class="panes" id="panes">
@@ -62,13 +63,31 @@
             <button type="button" data-v="7d">7 jours</button>
             <button type="button" data-v="all">Tout</button>
           </div>
-          <div class="selects">
+          <div class="selects" id="jo-selects">
             <select id="f-amb" aria-label="Ambassadeur"><option value="">Tous les ambassadeurs</option></select>
             <select id="f-prof" aria-label="Profession"><option value="">Toutes professions</option></select>
             <select id="f-dept" aria-label="Département"><option value="">Tous départements</option></select>
           </div>
         </div>
 
+        <div id="webi-stats" hidden>
+          <div class="kpis" id="w-kpis"></div>
+          <article class="block"><h2>Entonnoir du questionnaire</h2><div id="w-funnel" class="funnel"></div></article>
+          <div class="duo">
+            <article class="block"><h2>Notes</h2><div id="w-rating" class="bars"></div></article>
+            <article class="block"><h2>Ont-ils appris des choses ?</h2><div id="w-learned" class="bars"></div></article>
+            <article class="block"><h2>Ce qui les a le plus intéressés</h2><div id="w-liked" class="bars"></div></article>
+            <article class="block"><h2>Vont-ils essayer PandaSmile ?</h2><div id="w-try" class="bars"></div></article>
+            <article class="block"><h2>Profession</h2><div id="w-prof" class="bars"></div></article>
+            <article class="block"><h2>Comment ils ont connu le webinaire</h2><div id="w-source" class="bars"></div></article>
+            <article class="block"><h2>Durée du webinaire</h2><div id="w-length" class="bars"></div></article>
+            <article class="block"><h2>Départements</h2><div id="w-dept" class="bars"></div></article>
+          </div>
+          <article class="block"><h2>Sujets proposés pour le prochain webinaire</h2><ul class="feed" id="w-topics"></ul></article>
+          <article class="block"><h2>Messages pour le Dr Setbon</h2><ul class="feed" id="w-msgs"></ul></article>
+          <article class="block"><h2>Pas encore répondu</h2><div id="w-missing" class="wchips"></div></article>
+        </div>
+        <div id="jo-stats">
         <div class="kpis" id="kpis"></div>
 
         <article class="block">
@@ -101,11 +120,12 @@
           <h2>Derniers scans</h2>
           <ul class="feed" id="feed"></ul>
         </article>
+        </div>
 
         <button type="button" class="cta export" id="export">Exporter tout en Excel</button>
         <p class="note">L’export reprend les filtres choisis ci-dessus. Les données de plus de 3 mois sont supprimées automatiquement.</p>
         <button type="button" class="danger" id="reset">Remettre les stats à zéro</button>
-        <p class="note">Efface tous les scans et tous les inscrits (par exemple après les essais). Les codes des ambassadeurs ne changent pas.</p>
+        <p class="note" id="reset-note">Efface tous les scans et tous les inscrits (par exemple après les essais). Les codes des ambassadeurs ne changent pas.</p>
       </div>
     </section>
 

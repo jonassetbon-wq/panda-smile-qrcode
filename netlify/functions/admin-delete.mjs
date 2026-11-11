@@ -9,8 +9,10 @@ export default async (req) => {
   try { b = await req.json(); } catch { return json({ error: "Requête invalide" }, 400); }
 
   if (b.reset === true) {
+    // Remise à zéro de la catégorie affichée : journée de l'orthodontie (par défaut) ou webinaire.
     let n = 0;
-    for (const name of ["leads", "leadidx", "scans", "seen", "events"]) {
+    const names = b.cat === "webi" ? ["webi", "webiidx", "webievents"] : ["leads", "leadidx", "scans", "seen", "events"];
+    for (const name of names) {
       const s = store(name);
       const { blobs } = await s.list();
       for (const x of blobs) { await s.delete(x.key); n++; }
@@ -24,6 +26,16 @@ export default async (req) => {
     const rec = await leads.get(key, { type: "json" });
     if (!rec || rec.id !== b.id) return json({ error: "Inscrit introuvable" }, 404);
     await leads.delete(key);
+    const { blobs } = await idx.list();
+    for (const x of blobs) { if ((await idx.get(x.key)) === key) await idx.delete(x.key); }
+    return json({ ok: true });
+  }
+  if (typeof b.webiId === "string" && typeof b.t === "string") {
+    const answers = store("webi"), idx = store("webiidx");
+    const key = keyFor(b.t, b.webiId);
+    const rec = await answers.get(key, { type: "json" });
+    if (!rec || rec.id !== b.webiId) return json({ error: "Réponse introuvable" }, 404);
+    await answers.delete(key);
     const { blobs } = await idx.list();
     for (const x of blobs) { if ((await idx.get(x.key)) === key) await idx.delete(x.key); }
     return json({ ok: true });

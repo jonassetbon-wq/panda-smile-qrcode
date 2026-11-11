@@ -161,3 +161,13 @@ select{background:var(--night-2);border:1px solid var(--line);border-radius:12px
 .del.armed,.danger.armed{background:var(--danger);color:var(--night);border-color:var(--danger)}
 
 .tiles-grey{filter:grayscale(1) contrast(.9) brightness(1.05)}
+
+/* Bascule Journée de l'orthodontie / Webinaire (admin) */
+.cat{justify-self:center;margin-bottom:8px;display:flex;background:var(--night-2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;flex:none}
+.cat button{border:0;background:transparent;color:var(--muted);font-family:var(--display);font-weight:600;font-size:.9rem;padding:5px 12px;border-radius:999px;cursor:pointer}
+.cat button.on{background:var(--leaf);color:var(--night)}
+.wchips{display:flex;flex-wrap:wrap;gap:6px}
+.wchips span{background:var(--night-3,#1c2540);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:.82rem;color:var(--muted)}
+.stars-s{color:#ffd166;letter-spacing:1px}
+.lead .quote{font-style:italic}
+.sec-title{font-family:var(--display);font-weight:600;font-size:1rem;margin:18px 4px 6px;color:var(--muted)}
