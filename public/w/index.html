@@ -156,11 +156,6 @@ footer{color:var(--muted);font-size:.8rem;display:flex;flex-direction:column;gap
 .stars button.on{color:var(--sun);border-color:var(--sun);background:#2b2a1d}
 .stars button:active{transform:none;box-shadow:none}
 .stars-lbl{font-size:.85rem;color:var(--muted);text-align:center;min-height:1.3em}
-.names{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:52vh;overflow:auto;padding:2px}
-.names button{font-family:var(--body);font-weight:800;font-size:1rem;color:var(--ink);background:var(--night-3);border:2px solid var(--line);border-radius:14px;padding:13px 8px;box-shadow:none}
-.names button[aria-checked="true"]{border-color:var(--leaf);background:#1d2d22}
-.names button:active{transform:none;box-shadow:none}
-.names .none{grid-column:1/-1;color:var(--muted);text-align:center;font-size:.9rem;margin:6px 0}
 .nav{display:flex;gap:10px}
 .nav .back{flex:none;background:transparent;color:var(--sky);box-shadow:none;font-size:1rem;padding:12px 10px}
 .nav .back:active{transform:none;box-shadow:none}
@@ -170,6 +165,7 @@ footer{color:var(--muted);font-size:.8rem;display:flex;flex-direction:column;gap
 textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--night-3);border:2px solid transparent;border-radius:14px;padding:12px 14px;outline:none;resize:vertical;min-height:84px}
 textarea:focus{border-color:var(--sky);background:#222a50}
 .city{font-size:.85rem;color:var(--leaf);min-height:1.3em;margin:0}
+#manual{display:flex;flex-direction:column;gap:12px;text-align:left;margin-top:4px}
 .reco{width:100%;text-align:left;display:flex;flex-direction:column;gap:10px;background:var(--night-3);border-radius:18px;padding:16px 14px}
 .reco input,.reco select{background:var(--night-2)}
 .small{font-size:.8rem;color:var(--muted);margin:0}
@@ -189,13 +185,11 @@ textarea:focus{border-color:var(--sky);background:#222a50}
   <section class="card" aria-live="polite">
     <!-- 1. Qui êtes-vous -->
     <div class="block" id="s1">
-      <p class="q">Touchez votre nom</p>
-      <input id="find" type="search" placeholder="Rechercher votre prénom" autocomplete="off" aria-label="Rechercher votre prénom">
-      <div class="names" id="names" role="radiogroup" aria-label="Inscrits au webinaire"></div>
-      <button type="button" class="ghost" id="not-listed">Je ne trouve pas mon nom</button>
-      <div class="reco" id="manual" hidden>
-        <div class="field"><label for="m-name">Prénom et nom</label><input id="m-name" autocomplete="name" placeholder="Camille Martin"><div class="msg"></div></div>
-        <div class="field"><label for="m-email">E-mail</label><input id="m-email" type="email" inputmode="email" autocomplete="email" placeholder="contact@cabinet.fr"><div class="msg"></div></div>
+      <p class="q">Qui êtes-vous ?</p>
+      <div id="manual">
+        <div class="field"><label for="m-prenom">Prénom</label><input id="m-prenom" autocomplete="given-name" placeholder="Votre prénom"><div class="msg"></div></div>
+        <div class="field"><label for="m-nom">Nom</label><input id="m-nom" autocomplete="family-name" placeholder="Votre nom"><div class="msg"></div></div>
+        <div class="field"><label for="m-email">E-mail</label><input id="m-email" type="email" inputmode="email" autocomplete="email" placeholder="Votre e-mail"><div class="msg"></div></div>
       </div>
       <p class="msg" id="s1-msg"></p>
       <button type="button" class="next" id="go1">Commencer</button>
@@ -261,7 +255,7 @@ textarea:focus{border-color:var(--sky);background:#222a50}
       <h2>Merci pour vos réponses</h2>
       <div class="reco" id="reco">
         <p class="q">Un confrère à inviter au prochain webinaire ? <span class="opt">(facultatif)</span></p>
-        <div class="field"><label for="r-prenom">Son prénom</label><input id="r-prenom" autocomplete="off" placeholder="Camille"><div class="msg"></div></div>
+        <div class="field"><label for="r-prenom">Son prénom</label><input id="r-prenom" autocomplete="off" placeholder="Votre prénom"><div class="msg"></div></div>
         <div class="field"><label for="r-email">Son e-mail</label><input id="r-email" type="email" inputmode="email" autocomplete="off" placeholder="camille@cabinet.fr"><div class="msg"></div></div>
         <div class="field"><label for="r-prof">Sa profession</label><div class="sel"><select id="r-prof"><option value="">Choisir (facultatif)</option><option>Orthodontiste</option><option>Orthophoniste</option><option>Chirurgien-dentiste</option><option>Kinésithérapeute maxillo-facial</option><option>Autre</option></select></div></div>
         <p class="small">Nous le contacterons une seule fois, pour l'inviter au prochain webinaire.</p>
@@ -294,7 +288,7 @@ const CH={
 const STAR_LBL=['','Décevant','Moyen','Bien','Très bien','Excellent'];
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SID=Math.random().toString(36).slice(2,12);
-const A={who:'',name:'',email:'',rating:0,learned:'',length:'',tryApp:'',profession:'',source:''};
+const A={who:'',prenom:'',nom:'',name:'',email:'',rating:0,learned:'',length:'',tryApp:'',profession:'',source:''};
 let people=[],startedAt=null,ref='',rid='',step=1;
 function track(type){try{const b=JSON.stringify({type,who:A.who,s:SID});navigator.sendBeacon?navigator.sendBeacon('/api/webi/event',new Blob([b],{type:'text/plain'})):fetch('/api/webi/event',{method:'POST',body:b,keepalive:true})}catch{}}
 track('view');
@@ -303,27 +297,19 @@ function show(n){step=n;for(let i=1;i<=5;i++)$('#s'+i).hidden=i!==n;
   document.querySelectorAll('.steps i').forEach((x,i)=>x.classList.toggle('on',i<Math.min(n,4)));
   $('.card').scrollIntoView({behavior:'smooth',block:'start'});}
 
-/* 1. Liste des inscrits */
-function drawNames(){const q=$('#find').value.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  const list=people.filter(p=>!q||p.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q));
-  $('#names').innerHTML=list.length?list.map(p=>`<button type="button" role="radio" aria-checked="${p.id===A.who}" data-id="${esc(p.id)}">${esc(p.label)}</button>`).join(''):'<p class="none">Aucun nom ne correspond.</p>';}
-fetch('/api/webi/people').then(r=>r.json()).then(d=>{people=d.people||[];drawNames()}).catch(()=>{$('#s1-msg').textContent='Impossible de charger la liste. Vérifiez votre connexion.'});
-$('#find').addEventListener('input',drawNames);
-$('#names').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;A.who=b.dataset.id;A.name='';$('#manual').hidden=true;$('#s1-msg').textContent='';drawNames();track('pick')});
-$('#not-listed').addEventListener('click',()=>{A.who='';drawNames();$('#manual').hidden=false;$('#m-name').focus()});
+/* 1. Identité */
 const okEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 function fieldErr(el,t){const f=el.closest('.field');f.classList.toggle('err',!!t);f.querySelector('.msg').textContent=t;return !t}
 $('#go1').addEventListener('click',async()=>{
   const m=$('#s1-msg');m.textContent='';
-  if(!A.who){
-    if($('#manual').hidden){m.textContent='Touchez votre nom dans la liste.';return}
-    const n=$('#m-name').value.trim(),em=$('#m-email').value.trim();
-    const a=fieldErr($('#m-name'),n?'':'Indiquez votre prénom et votre nom.'),b=fieldErr($('#m-email'),okEmail(em)?'':'Vérifiez l’adresse e-mail.');
-    if(!a||!b)return;A.name=n;A.email=em;
-  }
+  const pn=$('#m-prenom').value.trim(),nm=$('#m-nom').value.trim(),em=$('#m-email').value.trim();
+  const a=fieldErr($('#m-prenom'),pn?'':'Indiquez votre prénom.'),b=fieldErr($('#m-nom'),nm?'':'Indiquez votre nom.'),c=fieldErr($('#m-email'),okEmail(em)?'':'Vérifiez l’adresse e-mail.');
+  if(!a||!b||!c)return;
+  A.prenom=pn;A.nom=nm;A.name=pn+' '+nm;A.email=em;
   startedAt=startedAt||new Date().toISOString();
-  $('#hello-name').textContent=A.who?people.find(p=>p.id===A.who).label.split(' ')[0]:A.name.split(' ')[0];
-  if(A.who){try{const r=await fetch('/api/webi/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status',who:A.who})}).then(r=>r.json());if(r.answered){show(5);return}}catch{}}
+  $('#hello-name').textContent=pn;
+  track('pick');
+  try{const r=await fetch('/api/webi/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status',email:em})}).then(r=>r.json());if(r.answered){show(5);return}}catch{}
   show(2);
 });
 
@@ -358,7 +344,7 @@ $('#go3').addEventListener('click',async()=>{let first=null;
   if(!/^\d{5}$/.test($('#cp').value)){const _e=err('postcode','Le code postal fait 5 chiffres.');first=first||_e}
   if(first){first.scrollIntoView({behavior:'smooth',block:'center'});return}
   const btn=$('#go3'),sm=$('#send-msg');btn.disabled=true;btn.textContent='Envoi…';sm.textContent='';
-  try{const r=await fetch('/api/webi/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'answer',who:A.who,name:A.name,email:A.email,rating:A.rating,learned:A.learned,length:A.length,tryApp:A.tryApp,profession:prof,source:src,postcode:$('#cp').value,topic:$('#topic').value,message:$('#message').value,startedAt})});
+  try{const r=await fetch('/api/webi/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'answer',who:A.who,name:A.name,prenom:A.prenom,nom:A.nom,email:A.email,rating:A.rating,learned:A.learned,length:A.length,tryApp:A.tryApp,profession:prof,source:src,postcode:$('#cp').value,topic:$('#topic').value,message:$('#message').value,startedAt})});
     const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error);ref=d.ref;rid=d.id;
   }catch{sm.textContent='L’envoi n’a pas abouti. Vérifiez votre connexion puis réessayez.';btn.disabled=false;btn.textContent='Envoyer mes réponses';return}
   btn.disabled=false;btn.textContent='Envoyer mes réponses';

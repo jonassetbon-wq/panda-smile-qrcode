@@ -1,8 +1,9 @@
 import { store, json, newId, keyFor } from "./lib/common.mjs";
-import { findAttendee, CHOICES, WEBINAR } from "./lib/webinar.mjs";
+import { CHOICES, WEBINAR } from "./lib/webinar.mjs";
 
 const clean = (v, n = 200) => String(v ?? "").trim().slice(0, n);
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailKey = (email) => `e_${email.replace(/[^\w@.+-]/g, "_")}`;
 
 // Code postal → commune, département, coordonnées (Base Adresse Nationale, gratuite).
 async function geoPostcode(cp) {
@@ -21,8 +22,8 @@ async function geoPostcode(cp) {
 
 /*
   POST /api/webi/submit
-  - { action: "status", who }            → a-t-il déjà répondu ?
-  - { action: "answer", who, ... }        → enregistre les réponses (une seule réponse par inscrit, la dernière compte)
+  - { action: "status", email }          → cette adresse a-t-elle déjà répondu ?
+  - { action: "answer", prenom, nom, email, ... } → enregistre les réponses (une seule réponse par e-mail, la dernière compte)
   - { action: "referral", ref, id, ... }  → ajoute la recommandation d'un confrère à une réponse
 */
 export default async (req) => {
@@ -32,9 +33,9 @@ export default async (req) => {
   const answers = store("webi"), idx = store("webiidx");
 
   if (b.action === "status") {
-    const who = findAttendee(b.who);
-    if (!who) return json({ answered: false });
-    return json({ answered: !!(await idx.get(who.id)) });
+    const email = clean(b.email, 150).toLowerCase();
+    if (!EMAIL.test(email)) return json({ answered: false });
+    return json({ answered: !!(await idx.get(emailKey(email))) });
   }
 
   if (b.action === "referral") {
@@ -50,14 +51,11 @@ export default async (req) => {
 
   if (b.action !== "answer") return json({ error: "Requête invalide" }, 400);
 
-  // Qui répond : un inscrit de la liste, ou une personne absente de la liste (nom + e-mail saisis).
-  let who = findAttendee(b.who), person;
-  if (who) person = { attendee: who.id, name: who.name, email: who.email, listed: true };
-  else {
-    const name = clean(b.name, 120), email = clean(b.email, 150).toLowerCase();
-    if (!name || !EMAIL.test(email)) return json({ error: "Nom et e-mail requis", fields: ["name", "email"] }, 400);
-    person = { attendee: "", name, email, listed: false };
-  }
+  // Le participant saisit lui-même son prénom, son nom et son e-mail.
+  const prenom = clean(b.prenom, 60), nom = clean(b.nom, 80), email = clean(b.email, 150).toLowerCase();
+  const name = clean(prenom && nom ? `${prenom} ${nom}` : b.name, 120);
+  if (!name || !EMAIL.test(email)) return json({ error: "Prénom, nom et e-mail requis", fields: ["prenom", "nom", "email"] }, 400);
+  const person = { attendee: "", name, prenom, nom, email, listed: false };
 
   const rating = Number(b.rating);
   const pick = (v, list) => (list.includes(v) ? v : "");
@@ -93,8 +91,8 @@ export default async (req) => {
     durationSec: Number.isFinite(Date.parse(b.startedAt)) ? Math.max(0, Math.round((Date.now() - Date.parse(b.startedAt)) / 1000)) : null,
   };
 
-  // Une seule réponse par inscrit : la nouvelle remplace l'ancienne (on garde sa recommandation éventuelle).
-  const idxKey = person.listed ? person.attendee : `e_${person.email.replace(/[^\w@.+-]/g, "_")}`;
+  // Une seule réponse par e-mail : la nouvelle remplace l'ancienne (on garde sa recommandation éventuelle).
+  const idxKey = emailKey(email);
   const old = await idx.get(idxKey);
   if (old) {
     const prev = await answers.get(old, { type: "json" });
