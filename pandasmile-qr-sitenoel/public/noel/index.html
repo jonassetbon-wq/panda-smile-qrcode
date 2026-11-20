@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b3172b">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/img/icon.png">
+<title>Jeu de Noël · Combien pèse le nounours ?</title>
+<link rel="preload" href="/noel/img/affiche.webp" as="image">
+<link rel="stylesheet" href="/noel/fonts.css">
+<style>
+/* Même direction artistique que l'affiche : rouge, crème, vert sapin, or ; Fraunces (titres) + Bricolage Grotesque (texte). */
+:root{
+  --red:#b3172b; --red-d:#8c0f20; --green:#0d3a2b; --green-d:#082a1f; --green-l:#11493a;
+  --cream:#f8f0e1; --cream-d:#eadfc8; --gold:#e9b44c; --gold-l:#f6d68a; --ink:#0d3a2b; --muted:#5b6d64; --err:#b3172b;
+  --display:'Fraunces',Georgia,serif; --body:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --ratio:1.41436; /* 1123 / 794 */
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:var(--body);color:var(--ink);font-size:16px;line-height:1.5;
+  background:
+    repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 2px,transparent 2px 22px),
+    radial-gradient(900px 600px at 50% 0,#14513f 0%,var(--green) 55%,var(--green-d) 100%);
+  background-attachment:fixed;min-height:100svh}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* ---------- Ouverture : l'affiche, puis le nounours qui s'envole ---------- */
+.intro{position:relative;height:240svh}
+.stage{position:sticky;top:0;height:100svh;overflow:hidden}
+.flakes{position:absolute;inset:0;pointer-events:none;
+  background-image:
+    radial-gradient(2px 2px at 8% 12%,#fff8 50%,transparent 51%),radial-gradient(1.5px 1.5px at 22% 70%,#fff6 50%,transparent 51%),
+    radial-gradient(2px 2px at 88% 20%,#fff7 50%,transparent 51%),radial-gradient(1.5px 1.5px at 70% 86%,#fff6 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 50% 40%,#fff5 50%,transparent 51%),radial-gradient(2px 2px at 95% 60%,#fff6 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 4% 48%,#fff6 50%,transparent 51%),radial-gradient(1.5px 1.5px at 35% 94%,#fff5 50%,transparent 51%)}
+.poster{position:absolute;left:50%;top:0;transform-origin:50% 0;will-change:transform;
+  box-shadow:0 30px 60px rgba(0,0,0,.45);border-radius:0 0 6px 6px;overflow:hidden;background:var(--cream)}
+.poster img{display:block;width:100%;height:100%}
+.flyer{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform,filter,opacity;pointer-events:none;z-index:3}
+.flyer img{display:block;width:100%;height:100%}
+.hint{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:4;
+  display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--cream);font-weight:700;font-size:.95rem;letter-spacing:.02em;text-align:center;white-space:nowrap;text-decoration:none;
+  text-shadow:0 2px 10px rgba(0,0,0,.5);transition:opacity .3s}
+.hint span{display:inline-flex;align-items:center;gap:8px;background:var(--red);border:2px solid var(--gold);border-radius:999px;padding:9px 18px;box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.hint i{font-style:normal;animation:bob 1.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(5px)}}
+
+/* ---------- Formulaire ---------- */
+.jeu{position:relative;z-index:2;padding:8svh max(16px,env(safe-area-inset-left)) 40px max(16px,env(safe-area-inset-right))}
+.card{max-width:520px;margin:0 auto;background:var(--cream);border-radius:26px;padding:28px 22px 24px;box-shadow:0 24px 60px rgba(0,0,0,.4);position:relative}
+.card::before{content:"";position:absolute;left:0;right:0;top:-1px;height:16px;border-radius:26px 26px 0 0;
+  background:radial-gradient(circle at 12px -2px,var(--green) 11px,transparent 12px) 0 0/24px 16px repeat-x;opacity:.0}
+.kicker{display:inline-flex;align-items:center;gap:8px;background:var(--red);color:var(--cream);font-weight:800;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;border-radius:999px;padding:6px 13px}
+h1{font-family:var(--display);font-variation-settings:'SOFT' 100,'WONK' 1,'opsz' 144;font-weight:900;color:var(--red);font-size:clamp(2.4rem,11vw,3.4rem);line-height:.92;letter-spacing:-.03em;margin:14px 0 8px}
+h1 em{font-style:italic;font-weight:400;color:var(--green);letter-spacing:-.02em}
+.lede{margin:0 0 18px;color:var(--muted);text-wrap:pretty}
+.lede b{color:var(--red)}
+form{display:flex;flex-direction:column;gap:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:380px){.row{grid-template-columns:1fr}}
+label.f{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.86rem}
+label.f input,label.f select{width:100%;background:#fff;border:2px solid var(--cream-d);border-radius:14px;padding:13px 14px;font-size:16px;font-weight:500;color:var(--ink);appearance:none;-webkit-appearance:none}
+label.f input:focus,label.f select:focus{outline:none;border-color:var(--green)}
+label.f.bad input,label.f.bad select{border-color:var(--err);background:#fff6f6}
+.guess{background:var(--green);color:var(--cream);border-radius:20px;padding:16px 16px 18px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
+.guess::after{content:"?";position:absolute;right:-6px;top:-30px;font-family:var(--display);font-weight:900;font-size:150px;line-height:1;color:var(--gold);opacity:.13;pointer-events:none}
+.guess .q{font-family:var(--display);font-style:italic;font-weight:700;font-size:1.35rem;line-height:1.1;font-variation-settings:'SOFT' 100,'WONK' 1}
+.guess .s{font-size:.82rem;color:#f8f0e1b3;margin-top:-4px}
+.guess label.f{color:var(--cream)}
+.guess select{font-size:1.15rem!important;font-weight:800!important;text-align:center;text-align-last:center;
+  background:var(--cream) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%230d3a2b' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 16px center!important;
+  border-color:var(--gold)!important;padding-right:40px!important}
+.guess label.f.bad select{border-color:#ff8a8a!important}
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:.84rem;color:var(--muted);cursor:pointer}
+.consent input{width:22px;height:22px;flex:0 0 22px;margin:1px 0 0;accent-color:var(--green)}
+.consent.bad{color:var(--err)}
+.err{color:var(--err);font-weight:700;font-size:.9rem;margin:0;min-height:1.2em}
+.cta{font-family:var(--display);font-weight:800;font-style:italic;font-size:1.3rem;font-variation-settings:'SOFT' 100,'WONK' 1;
+  background:var(--red);color:var(--cream);border:0;border-radius:999px;padding:16px 22px;cursor:pointer;box-shadow:0 6px 0 var(--red-d),0 14px 24px rgba(179,23,43,.3)}
+.cta:active{transform:translateY(3px);box-shadow:0 3px 0 var(--red-d)}
+.cta[disabled]{opacity:.6;cursor:wait}
+details.rules{margin-top:18px;border-top:1px dashed var(--cream-d);padding-top:12px;font-size:.84rem;color:var(--muted)}
+details.rules summary{cursor:pointer;font-weight:700;color:var(--green)}
+details.rules ol{padding-left:18px;margin:10px 0 0}
+details.rules li{margin-bottom:6px}
+.prizes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 18px}
+.prize{background:#fff;border:2px solid var(--cream-d);border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.prize b{font-family:var(--display);font-style:italic;font-weight:700;color:var(--gold);font-size:1.1rem;line-height:1;font-variation-settings:'SOFT' 100,'WONK' 1;-webkit-text-stroke:.3px #b8862a}
+.prize span{font-weight:700;font-size:.92rem;line-height:1.2}
+
+/* Écran de confirmation */
+.done{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+.done .tagw{width:110px;height:auto;transform:rotate(-6deg);margin-bottom:4px}
+.done h2{font-family:var(--display);font-weight:900;color:var(--red);font-size:2.2rem;line-height:1;margin:0;font-variation-settings:'SOFT' 100,'WONK' 1}
+.done p{margin:0;color:var(--muted);max-width:34ch}
+.done .big{font-family:var(--display);font-weight:900;font-size:2.6rem;color:var(--green);line-height:1}
+.foot{text-align:center;color:#f8f0e1b3;font-size:.8rem;padding:18px 16px max(26px,env(safe-area-inset-bottom))}
+.foot b{display:block;color:var(--gold);letter-spacing:.2em;font-size:.72rem;margin-bottom:2px}
+.foot i{font-family:var(--display);font-size:.95rem;color:var(--cream)}
+
+@media (prefers-reduced-motion:reduce){
+  .intro{height:auto}.stage{position:relative;height:auto;padding:16px 0 0}
+  .poster{position:relative;left:auto;margin:0 auto;transform:none!important}
+  .flyer,.hint{display:none}
+  .hint i{animation:none}
+}
+</style>
+</head>
+<body>
+
+<section class="intro" id="intro" aria-label="Affiche du jeu">
+  <div class="stage" id="stage">
+    <div class="flakes"></div>
+    <div class="poster" id="poster" role="img" aria-label="Affiche : Combien pèse le nounours ? Jeu concours gratuit du cabinet d'orthodontie. 1er prix : casque JBL Tune 680NC. 2e prix : le nounours.">
+      <img src="/noel/img/affiche.webp" alt="" width="1588" height="2246" fetchpriority="high">
+    </div>
+    <div class="flyer" id="flyer"><img src="/noel/img/nounours.webp" alt="" width="758" height="1044"></div>
+    <a class="hint" id="hint" href="#jouer"><span>Fais défiler pour jouer <i>↓</i></span></a>
+  </div>
+</section>
+
+<section class="jeu" id="jouer">
+  <div class="card">
+    <div id="play">
+      <span class="kicker">✦ Jeu concours gratuit</span>
+      <h1>Combien pèse <em>le nounours&nbsp;?</em></h1>
+      <p class="lede">Il est à côté de l’affiche, au cabinet. Observe-le bien, puis <b>choisis ton pronostic à 100 g près</b>. Une seule réponse par personne&nbsp;!</p>
+      <div class="prizes">
+        <div class="prize"><b>1er prix</b><span>Casque JBL Tune 680NC</span></div>
+        <div class="prize"><b>2e prix</b><span>Le nounours lui-même&nbsp;!</span></div>
+      </div>
+      <form id="form" novalidate>
+        <div class="row">
+          <label class="f" data-f="prenom">Prénom<input name="prenom" autocomplete="given-name" maxlength="60" required></label>
+          <label class="f" data-f="nom">Nom<input name="nom" autocomplete="family-name" maxlength="80" required></label>
+        </div>
+        <label class="f" data-f="email">E-mail<input name="email" type="email" inputmode="email" autocomplete="email" maxlength="150" required placeholder="prenom@exemple.fr"></label>
+        <label class="f" data-f="tel">Téléphone<input name="tel" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" required placeholder="06 12 34 56 78"></label>
+        <div class="guess">
+          <span class="q">Ton pronostic&nbsp;: combien pèse-t-il&nbsp;?</span>
+          <span class="s">Entre 100 g et 3 kg, à 100 g près.</span>
+          <label class="f" data-f="guess"><span class="sr" hidden>Poids</span><select name="guess" id="guess" required aria-label="Poids du nounours"><option value="">Choisis un poids</option></select></label>
+        </div>
+        <label class="consent" data-f="consent"><input type="checkbox" name="consent" id="consent"><span>J’accepte que mes coordonnées servent uniquement à ce jeu&nbsp;: e-mail de confirmation et contact des gagnants. Elles seront supprimées dans les 3 mois.</span></label>
+        <p class="err" id="err" role="alert"></p>
+        <button class="cta" type="submit" id="send">Envoyer ma réponse</button>
+      </form>
+      <details class="rules">
+        <summary>Règlement du jeu</summary>
+        <ol>
+          <li>Jeu gratuit et sans obligation d’achat, organisé par le cabinet d’orthodontie du Dr Helena Sebag Setbon et du Dr Olivier Setbon, ouvert jusqu’au 31/12/2026 à minuit.</li>
+          <li>Une seule participation par personne (même e-mail ou même téléphone). Les mineurs participent avec l’accord d’un parent.</li>
+          <li>Le gagnant du casque JBL Tune 680NC est tiré au sort parmi les bonnes réponses. S’il n’y en a aucune, le tirage se fait parmi les pronostics les plus proches du poids réel.</li>
+          <li>Le nounours est offert à un second participant, choisi par le cabinet.</li>
+          <li>Les gagnants sont prévenus par e-mail, puis contactés par téléphone pour la remise des lots. Les lots ne sont ni échangeables ni remboursables.</li>
+          <li>Les coordonnées ne servent qu’à ce jeu et sont supprimées dans les 3 mois. Pour les faire effacer plus tôt, il suffit de le demander au cabinet.</li>
+        </ol>
+      </details>
+    </div>
+
+    <div class="done" id="done" hidden>
+      <svg class="tagw" viewBox="0 0 84 100" aria-hidden="true"><path d="M22 0H62L84 24V92Q84 100 76 100H8Q0 100 0 92V24Z" fill="#0d3a2b"/><circle cx="42" cy="18" r="6" fill="#f8f0e1"/><text x="42" y="70" text-anchor="middle" style="font-family:Fraunces;font-weight:900;font-size:34px;fill:#e9b44c">✓</text></svg>
+      <h2 id="done-title">C’est noté&nbsp;!</h2>
+      <p>Ton pronostic</p>
+      <span class="big" id="done-guess"></span>
+      <p id="done-msg"></p>
+    </div>
+
+    <div class="done" id="closed" hidden>
+      <h2>Le jeu est terminé</h2>
+      <p>Merci à tous les participants&nbsp;! Les gagnants sont prévenus par e-mail.</p>
+    </div>
+  </div>
+  <p class="foot"><b>CABINET D’ORTHODONTIE</b><i>Dr Helena Sebag Setbon &amp; Dr Olivier Setbon</i></p>
+</section>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const CLOSES = Date.parse('2026-12-31T23:00:00Z');
+  const sid = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).slice(0, 36);
+  const ev = (type) => { try { navigator.sendBeacon('/api/noel/event', JSON.stringify({ type, s: sid })); } catch {} };
+  ev('view');
+
+  /* ---------- Liste des poids : 100 g à 3 kg ---------- */
+  const fmt = (g) => (g < 1000 ? `${g} g` : `${(g / 1000).toLocaleString('fr-FR', { minimumFractionDigits: g % 1000 ? 1 : 0, maximumFractionDigits: 1 })} kg`);
+  const sel = $('#guess');
+  for (let g = 100; g <= 3000; g += 100) sel.insertAdjacentHTML('beforeend', `<option value="${g}">${fmt(g)}</option>`);
+
+  /* ---------- Animation au défilement ---------- */
+  const intro = $('#intro'), stage = $('#stage'), poster = $('#poster'), flyer = $('#flyer'), hint = $('#hint');
+  const BEAR = { x: 388.5 / 794, y: 35.5 / 1123, w: 379 / 794, h: 522 / 1123 }; // position du nounours dans l'affiche
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const ease = (t) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const lerp = (a, b, t) => a + (b - a) * t;
+  let W = 0, H = 0, L = 0, T = 0, vw = 0, vh = 0;
+  function layout() {
+    vw = stage.clientWidth; vh = stage.clientHeight;
+    W = Math.min(vw - (vw > 600 ? 48 : 0), (vh - (vw > 600 ? 40 : 12)) / 1.41436, 640);
+    // Sur téléphone : l'affiche occupe toute la largeur.
+    if (vw <= 600) W = Math.min(vw, 640);
+    H = W * 1.41436;
+    L = (vw - W) / 2; T = vw > 600 ? 20 : 0;
+    poster.style.width = W + 'px'; poster.style.height = H + 'px';
+    poster.style.left = L + 'px'; poster.style.top = T + 'px';
+    flyer.style.width = BEAR.w * W + 'px'; flyer.style.height = BEAR.h * W * 1.41436 + 'px';
+    frame();
+  }
+  function frame() {
+    if (reduce) return;
+    const span = intro.offsetHeight - vh;
+    const p = clamp((scrollY - intro.offsetTop) / Math.max(1, span));
+    // 1. L'affiche monte et sort par le haut.
+    const up = ease(clamp(p / .62));
+    const ty = -up * (T + H + 30);
+    poster.style.transform = `translate3d(0,${ty}px,0)`;
+    // 2. Le nounours se détache, file vers le centre et grandit.
+    const bw = BEAR.w * W, bh = BEAR.h * H;
+    const x0 = L + BEAR.x * W, y0 = T + BEAR.y * H + ty;
+    const target = Math.min(vh * .7 / bh, vw * .92 / bw, 2.6);
+    const m = ease(clamp((p - .04) / .5));
+    let s = lerp(1, target, m);
+    // 3. Il grossit encore, se ternit puis disparaît.
+    const f = clamp((p - .56) / .32);
+    s *= 1 + f * .45;
+    const cx = lerp(x0 + bw / 2, vw / 2, m), cy = lerp(y0 + bh / 2, vh * .48, m);
+    flyer.style.transform = `translate3d(${cx - (bw * s) / 2}px,${cy - (bh * s) / 2}px,0) scale(${s})`;
+    flyer.style.opacity = String(1 - ease(f));
+    flyer.style.filter = f > 0 ? `saturate(${1 - f}) brightness(${1 + f * .35}) blur(${f * 8}px)` : 'none';
+    flyer.style.visibility = f >= 1 ? 'hidden' : 'visible';
+    hint.style.opacity = String(1 - clamp(p / .08));
+    hint.style.pointerEvents = p > .05 ? 'none' : '';
+  }
+  addEventListener('resize', layout);
+  addEventListener('scroll', () => requestAnimationFrame(frame), { passive: true });
+  layout();
+  if (reduce) { poster.style.left = ''; poster.style.top = ''; }
+
+  /* ---------- Formulaire ---------- */
+  if (Date.now() >= CLOSES) { $('#play').hidden = true; $('#closed').hidden = false; }
+  let startedAt = null;
+  const form = $('#form');
+  new IntersectionObserver((es, o) => { if (es.some((e) => e.isIntersecting)) { ev('form'); o.disconnect(); } }, { threshold: .35 }).observe(form);
+  form.addEventListener('focusin', () => { if (!startedAt) { startedAt = new Date().toISOString(); ev('start'); } });
+  form.addEventListener('input', (e) => { const l = e.target.closest('[data-f]'); if (l) l.classList.remove('bad'); });
+  form.addEventListener('change', (e) => { const l = e.target.closest('[data-f]'); if (l) l.classList.remove('bad'); });
+
+  const MSG = { prenom: 'ton prénom', nom: 'ton nom', email: 'un e-mail valide', tel: 'un numéro de téléphone valide', guess: 'ton pronostic', consent: 'la case d’accord' };
+  function check(d) {
+    const bad = [];
+    if (!d.prenom) bad.push('prenom');
+    if (!d.nom) bad.push('nom');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) bad.push('email');
+    const digits = d.tel.replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 15) bad.push('tel');
+    if (!d.guess) bad.push('guess');
+    if (!d.consent) bad.push('consent');
+    return bad;
+  }
+  function showBad(bad) {
+    document.querySelectorAll('[data-f]').forEach((l) => l.classList.toggle('bad', bad.includes(l.dataset.f)));
+    $('#err').textContent = bad.length ? `Il manque ${bad.map((k) => MSG[k]).join(', ')}.` : '';
+    const first = document.querySelector(`[data-f="${bad[0]}"] input, [data-f="${bad[0]}"] select`);
+    first?.focus();
+  }
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const d = { prenom: (fd.get('prenom') || '').trim(), nom: (fd.get('nom') || '').trim(), email: (fd.get('email') || '').trim(), tel: (fd.get('tel') || '').trim(), guess: Number(fd.get('guess')) || 0, consent: $('#consent').checked };
+    const bad = check(d);
+    if (bad.length) return showBad(bad);
+    showBad([]);
+    const btn = $('#send'); btn.disabled = true; btn.textContent = 'Envoi…';
+    try {
+      const r = await fetch('/api/noel/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...d, startedAt, s: sid }) });
+      const res = await r.json().catch(() => ({}));
+      if (r.status === 409 && res.already) {
+        $('#err').textContent = `Tu as déjà participé avec ${res.by === 'tel' ? 'ce numéro' : 'cet e-mail'} (pronostic : ${res.guessLabel}). Une seule réponse par personne !`;
+      } else if (r.status === 403 && res.closed) {
+        $('#play').hidden = true; $('#closed').hidden = false;
+      } else if (!r.ok) {
+        if (res.fields) showBad(res.fields); else $('#err').textContent = res.error || 'Une erreur est survenue, réessaie.';
+      } else {
+        $('#play').hidden = true; $('#done').hidden = false;
+        $('#done-title').textContent = `C’est noté, ${d.prenom} !`;
+        $('#done-guess').textContent = res.guessLabel || fmt(d.guess);
+        $('#done-msg').textContent = res.mailSent ? `Un e-mail de confirmation vient de partir à ${d.email}. Résultats après le 31 décembre. Bonne chance !` : `Ta participation est bien enregistrée. Résultats après le 31 décembre. Bonne chance !`;
+        $('#done').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+      }
+    } catch { $('#err').textContent = 'Pas de connexion internet. Réessaie dans un instant.'; }
+    btn.disabled = false; btn.textContent = 'Envoyer ma réponse';
+  });
+})();
+</script>
+</body>
+</html>

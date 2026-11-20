@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f19">
+<link rel="icon" href="/img/icon.png">
+<title>PandaSmile Praticiens</title>
+<meta name="description" content="Professionnels de santé : laissez vos coordonnées et profitez de 3 mois de PandaSmile offerts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout : une colonne mobile-first sur fond bleu nuit étoilé, carte formulaire claire au centre, panda en tête */
+:root{
+  color-scheme: dark;
+  --night:#0b0f19;      /* fond du site pandasmile.app (theme-color) */
+  --night-2:#131a2c;
+  --night-3:#1c2540;
+  --ink:#f4f6fb;
+  --muted:#a6b0c8;
+  --line:#2a3454;
+  --sky:#9aa6ff;        /* lavande du logo, éclaircie pour le fond nuit */
+  --lav:#5b68b1;        /* lavande exacte du logo */
+  --leaf:#7ed957;       /* vert bambou */
+  --sun:#ffd166;
+  --danger:#ff7a7a;
+  --display:"Fredoka", "Baloo 2", ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+  --body:"Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{
+  margin:0;background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 8%, #ffffffaa 50%, transparent 51%),
+    radial-gradient(1px 1px at 82% 14%, #ffffff88 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 64% 4%, #ffffff77 50%, transparent 51%),
+    radial-gradient(1px 1px at 30% 22%, #ffffff66 50%, transparent 51%),
+    radial-gradient(1px 1px at 92% 40%, #ffffff55 50%, transparent 51%),
+    radial-gradient(1px 1px at 6% 46%, #ffffff55 50%, transparent 51%),
+    radial-gradient(640px 420px at 50% -60px, #2e3778 0%, transparent 70%);
+  background-repeat:no-repeat;
+}
+.wrap{max-width:520px;margin:0 auto;padding-block:28px 48px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  display:flex;flex-direction:column;gap:22px}
+header{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.logo{width:min(260px,72%);height:auto}
+.panda{width:min(190px,48vw);height:auto;margin-block:-4px -6px;filter:drop-shadow(0 18px 30px #0009)}
+.promo{display:flex;flex-direction:column;gap:2px;background:var(--lav);color:#fff;border-radius:18px;padding:12px 18px;max-width:34ch;box-shadow:0 8px 24px #5b68b155}
+.promo strong{font-family:var(--display);font-weight:600;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sun)}
+.promo b{font-weight:800}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,6.5vw,2.2rem);line-height:1.12;margin:4px 0 0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--leaf)}
+.lede{color:var(--muted);margin:0;max-width:34ch;text-wrap:pretty}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--night);background:var(--sun);padding:5px 12px;border-radius:999px}
+
+.card{scroll-margin-top:12px;background:var(--night-2);border:1px solid var(--line);border-radius:24px;padding:22px 18px;box-shadow:0 20px 50px #0007}
+form{display:flex;flex-direction:column;gap:16px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:380px){.row{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+label{font-weight:700;font-size:.92rem}
+label .opt{color:var(--muted);font-weight:600}
+input,select{
+  width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--night-3);
+  border:2px solid transparent;border-radius:14px;padding:13px 14px;outline:none;transition:border-color .15s, background .15s;
+  -webkit-appearance:none;appearance:none}
+input::placeholder{color:#7d88a6}
+input:focus,select:focus{border-color:var(--sky);background:#222a50}
+.sel{position:relative}
+.sel::after{content:"";position:absolute;right:16px;top:50%;width:9px;height:9px;border-right:2.5px solid var(--sky);border-bottom:2.5px solid var(--sky);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+select{padding-right:40px}
+select:invalid{color:#7d88a6}
+option{color:#0b0f19;background:#fff}
+.field.err input,.field.err select{border-color:var(--danger)}
+.msg{font-size:.82rem;color:var(--danger);min-height:0}
+.msg:empty{display:none}
+
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:.85rem;color:var(--muted)}
+.consent input{width:22px;height:22px;flex:none;padding:0;border-radius:7px;margin-top:1px;appearance:auto;-webkit-appearance:checkbox;accent-color:var(--leaf)}
+
+button{font-family:var(--display);font-weight:600;font-size:1.15rem;letter-spacing:.2px;cursor:pointer;
+  color:var(--night);background:var(--leaf);border:0;border-radius:999px;padding:16px 20px;
+  box-shadow:0 6px 0 #4c9f2f;transition:transform .08s, box-shadow .08s}
+button:disabled{opacity:.6;cursor:wait}
+button:active{transform:translateY(4px);box-shadow:0 2px 0 #4c9f2f}
+button:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+
+.done{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 4px}
+.done h2{font-family:var(--display);font-size:1.6rem;margin:0}
+.done p{margin:0;color:var(--muted)}
+.patients{width:100%;display:flex;flex-direction:column;gap:12px;margin-top:8px;background:var(--night-3);border-radius:18px;padding:16px 14px}
+.patients .q{margin:0;color:var(--ink);font-weight:700}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choices button{font-family:var(--body);font-weight:700;font-size:.95rem;color:var(--ink);background:var(--night-2);border:2px solid var(--line);border-radius:14px;padding:12px 6px;box-shadow:none}
+.choices button:last-child{grid-column:1/-1}
+.choices button[aria-checked="true"]{border-color:var(--leaf);background:#1d2d22}
+.choices button:active{transform:none;box-shadow:none}
+.promo-panda{width:110px;height:auto;filter:drop-shadow(0 12px 22px #0009)}
+.code{display:flex;align-items:center;gap:10px;background:#fff;color:var(--night);border-radius:16px;padding:10px 10px 10px 18px;border:3px dashed var(--lav)}
+.code span{font-family:var(--display);font-weight:700;font-size:1.6rem;letter-spacing:.06em;user-select:all}
+.code .copy{font-size:.95rem;padding:9px 14px;background:var(--lav);color:#fff;box-shadow:none}
+.code .copy:active{transform:none}
+.exp{font-size:.88rem}
+.app-btn{display:block;width:100%;text-align:center;font-family:var(--display);font-weight:600;font-size:1.1rem;color:var(--night);background:var(--leaf);border-radius:999px;padding:15px 20px;text-decoration:none;box-shadow:0 6px 0 #4c9f2f;margin-top:6px}
+.recap{width:100%;text-align:left;background:var(--night-3);border-radius:16px;padding:14px 16px;font-size:.92rem;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}
+.recap dt{color:var(--muted)}
+.recap dd{margin:0;font-weight:700;overflow-wrap:anywhere}
+.ghost{background:transparent;color:var(--sky);box-shadow:none;font-size:1rem;padding:10px}
+.ghost:active{transform:none;box-shadow:none}
+
+.ac{position:relative}
+.ac-list{position:absolute;z-index:5;left:0;right:0;top:calc(100% + 6px);margin:0;padding:6px;list-style:none;background:var(--night-3);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 30px #0009}
+.ac-list li{padding:10px 12px;border-radius:10px;cursor:pointer;font-size:.92rem}
+.ac-list li small{display:block;color:var(--muted);font-size:.78rem}
+.ac-list li:hover,.ac-list li[aria-selected="true"]{background:#2a3560}
+footer{color:var(--muted);font-size:.8rem;display:flex;flex-direction:column;gap:14px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.foot p{margin:0}
+.linkbtn{all:unset;cursor:pointer;color:var(--sky);text-decoration:underline;text-underline-offset:3px;font-size:.8rem}
+.linkbtn:focus-visible{outline:2px solid var(--sun);outline-offset:3px;border-radius:4px}
+.sheet{position:fixed;inset:0;z-index:20;background:#05070dcc;display:flex;align-items:flex-end;justify-content:center;
+  padding-top:max(24px, env(safe-area-inset-top, 0px));padding-left:env(safe-area-inset-left, 0px);padding-right:env(safe-area-inset-right, 0px)}
+.sheet-in{background:var(--night-2);border:1px solid var(--line);border-radius:24px 24px 0 0;width:100%;max-width:560px;max-height:100%;overflow:auto;
+  padding-block:22px max(22px, env(safe-area-inset-bottom, 0px));padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px));
+  display:flex;flex-direction:column;gap:12px;font-size:.92rem;color:var(--ink)}
+.sheet-in h2:focus{outline:none}
+.sheet-in h2{font-family:var(--display);font-size:1.35rem;margin:0}
+.sheet-in h3{font-family:var(--display);font-weight:600;font-size:1.02rem;margin:6px 0 0;color:var(--sky)}
+.sheet-in p,.sheet-in ul{margin:0;color:var(--muted)}
+.sheet-in ul{padding-left:20px}
+.sheet-in .close{align-self:stretch;margin-top:8px}
+.axes{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.axes span{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:.78rem;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.panda{animation:bob 4s ease-in-out infinite}}
+@keyframes bob{50%{transform:translateY(-6px)}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <img class="logo" src="/img/logo.webp" alt="PandaSmile" width="720" height="223">
+    <img class="panda" src="/img/panda.webp" alt="Le panda PandaSmile qui sourit" width="426" height="640">
+    <span class="pill">Espace praticiens</span>
+    <h1>Rejoignez l’aventure <em>PandaSmile</em></h1>
+    <p class="lede">L’éducation fonctionnelle enfin ludique. Laissez vos coordonnées et l’équipe vous recontacte pour vous présenter PandaSmile Pro.</p>
+    <div class="promo"><strong>Offre de lancement</strong><span>Remplissez vos infos pour profiter de <b>3 mois de PandaSmile offerts</b>.</span></div>
+  </header>
+
+  <section class="card" aria-live="polite">
+    <form id="form" novalidate>
+      <div class="row">
+        <div class="field"><label for="prenom">Prénom</label><input id="prenom" name="prenom" autocomplete="given-name" placeholder="Camille" required><div class="msg"></div></div>
+        <div class="field"><label for="nom">Nom</label><input id="nom" name="nom" autocomplete="family-name" placeholder="Martin" required><div class="msg"></div></div>
+      </div>
+      <div class="field">
+        <label for="profession">Profession</label>
+        <div class="sel">
+          <select id="profession" name="profession" required>
+            <option value="" disabled selected>Choisissez votre profession</option>
+            <option>Dentiste</option>
+            <option>Orthodontiste</option>
+            <option>Chirurgien-dentiste</option>
+            <option>Orthophoniste</option>
+            <option>Kinésithérapeute</option>
+          </select>
+        </div>
+        <div class="msg"></div>
+      </div>
+      <div class="field"><label for="cabinet">Nom du cabinet / de la société <span class="opt">(facultatif)</span></label><input id="cabinet" name="cabinet" autocomplete="organization" placeholder="Cabinet du Sourire"><div class="msg"></div></div>
+      <div class="field"><label for="adresse">Adresse du cabinet</label><div class="ac"><input id="adresse" name="adresse" autocomplete="off" placeholder="12 rue des Bambous, 89000 Auxerre" required role="combobox" aria-expanded="false" aria-controls="ac-list" aria-autocomplete="list"><ul id="ac-list" class="ac-list" role="listbox" hidden></ul></div><div class="msg"></div></div>
+      <div class="field"><label for="tel">Téléphone</label><input id="tel" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78" required><div class="msg"></div></div>
+      <div class="field"><label for="email">E-mail</label><input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="contact@cabinet.fr" required><div class="msg"></div></div>
+      <label class="consent" for="rgpd"><input id="rgpd" type="checkbox" required><span>J’accepte que PandaSmile collecte et utilise les informations de ce formulaire pour me recontacter au sujet de PandaSmile Pro et de l’offre de lancement.</span></label>
+      <div class="msg" id="rgpd-msg"></div>
+      <p class="msg" id="send-msg"></p>
+      <button type="submit" id="send">Je profite des 3 mois offerts</button>
+    </form>
+
+    <div class="done" id="done" hidden>
+      <svg width="64" height="64" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="34" fill="#7ed957"/><path d="M22 37l9 9 19-20" fill="none" stroke="#0b0f19" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h2>Questionnaire bien rempli</h2>
+      <p>Merci, vos coordonnées sont enregistrées.</p>
+      <div class="patients" id="patients">
+        <p class="q">Combien de patients prenez-vous en éducation fonctionnelle chaque année ? <span class="opt">(facultatif)</span></p>
+        <div class="choices" id="choices" role="radiogroup" aria-label="Nombre de patients en éducation fonctionnelle par an">
+          <button type="button" role="radio" aria-checked="false" data-v="<20">Moins de 20</button>
+          <button type="button" role="radio" aria-checked="false" data-v="20-50">20 à 50</button>
+          <button type="button" role="radio" aria-checked="false" data-v="50-100">50 à 100</button>
+          <button type="button" role="radio" aria-checked="false" data-v="100-200">100 à 200</button>
+          <button type="button" role="radio" aria-checked="false" data-v=">200">Plus de 200</button>
+        </div>
+        <button type="button" id="to-promo">Voir mon code promo</button>
+      </div>
+    </div>
+
+    <div class="done reward" id="promo" hidden>
+      <img src="/img/panda.webp" alt="" width="120" height="180" class="promo-panda">
+      <h2>Félicitations !</h2>
+      <p>Voici votre code promo pour <b>3 mois de PandaSmile offerts</b> :</p>
+      <div class="code"><span id="promo-code">PANDAJO2026</span><button type="button" class="copy" id="copy-code">Copier</button></div>
+      <p class="exp">Code valable jusqu’au 31 décembre 2026.</p>
+      <a class="app-btn" href="https://pro.pandasmile.app" target="_blank" rel="noopener">Activer mes 3 mois sur PandaSmile Pro</a>
+      <button class="ghost" id="again" type="button">Remplir un nouveau formulaire</button>
+    </div>
+  </section>
+
+  <footer>
+    <div class="axes"><span>Respiration nasale</span><span>Déglutition</span><span>Posture linguale</span><span>Mastication</span><span>Phonation</span><span>Posture</span></div>
+    <div class="foot">
+      <button type="button" class="linkbtn" id="cgu-open">Conditions générales d’utilisation</button>
+      <p>© PandaSmile</p>
+    </div>
+  </footer>
+</div>
+
+<div class="sheet" id="cgu" hidden role="dialog" aria-modal="true" aria-labelledby="cgu-title">
+  <div class="sheet-in">
+    <h2 id="cgu-title" tabindex="-1">Conditions générales d’utilisation</h2>
+    <p>Ce formulaire permet aux professionnels de santé de demander à être recontactés par PandaSmile.</p>
+    <h3>Données collectées</h3>
+    <p>Prénom, nom, profession, nom du cabinet ou de la société, adresse, téléphone et adresse e-mail.</p>
+    <h3>Pourquoi</h3>
+    <p>Uniquement pour vous recontacter afin de vous présenter PandaSmile Pro et l’offre de lancement de 3 mois offerts. Vos données ne sont ni vendues ni transmises à des tiers.</p>
+    <h3>Durée de conservation</h3>
+    <p>Vos informations sont conservées <strong>3 mois maximum</strong> à compter de l’envoi du formulaire, puis supprimées.</p>
+    <h3>Base légale</h3>
+    <p>Votre consentement, donné en cochant la case avant l’envoi. Vous pouvez le retirer à tout moment.</p>
+    <h3>Vos droits (RGPD)</h3>
+    <ul>
+      <li>Accéder à vos données, les rectifier ou les faire supprimer.</li>
+      <li>Vous opposer à leur utilisation ou en demander la limitation.</li>
+      <li>Introduire une réclamation auprès de la CNIL (cnil.fr).</li>
+    </ul>
+    <p>Pour exercer ces droits, contactez l’équipe PandaSmile via pandasmile.app.</p>
+    <button type="button" class="close" id="cgu-close">J’ai compris</button>
+  </div>
+</div>
+
+<script>
+const P=new URLSearchParams(location.search),Q={a:P.get('a')||'',s:P.get('s')||''};
+let startedAt=null,lastField='',sent=false;
+function track(type,extra={}){try{const b=JSON.stringify({type,a:Q.a,s:Q.s,...extra});navigator.sendBeacon?navigator.sendBeacon('/api/event',new Blob([b],{type:'text/plain'})):fetch('/api/event',{method:'POST',body:b,keepalive:true})}catch{}}
+track('view');
+document.addEventListener('focusin',e=>{const el=e.target.closest('#form input,#form select');if(!el)return;lastField=el.id;if(!startedAt){startedAt=new Date().toISOString();track('start',{field:el.id})}});
+function filledCount(){return [...document.querySelectorAll('#form input:not([type=checkbox]),#form select')].filter(x=>x.value.trim()).length}
+let abandonSent=false;
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&startedAt&&!sent&&!abandonSent){abandonSent=true;track('abandon',{field:lastField,filled:filledCount()})}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')abandonSent=false});
+const form=document.getElementById('form'),done=document.getElementById('done'),promo=document.getElementById('promo');let leadId="",leadRef="",patients="";
+const labels={prenom:'Prénom',nom:'Nom',profession:'Profession',cabinet:'Cabinet / société',adresse:'Adresse',tel:'Téléphone',email:'E-mail'};
+function check(el){
+  const f=el.closest('.field');if(!f)return true;const m=f.querySelector('.msg');let t='';
+  const v=el.value.trim();
+  if(!v&&!el.required)t='';
+  else if(!v)t=el.tagName==='SELECT'?'Choisissez une profession dans la liste.':'Ce champ est obligatoire.';
+  else if(el.type==='email'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))t='Vérifiez l’adresse e-mail (ex. nom@cabinet.fr).';
+  else if(el.type==='tel'&&v.replace(/\D/g,'').length<9)t='Le numéro semble incomplet.';
+  f.classList.toggle('err',!!t);m.textContent=t;return !t;
+}
+form.querySelectorAll('input:not([type=checkbox]),select').forEach(el=>{
+  el.addEventListener('blur',()=>{if(el.value)check(el)});
+  el.addEventListener('input',()=>{if(el.closest('.field').classList.contains('err'))check(el)});
+  el.addEventListener('change',()=>check(el));
+});
+form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  let ok=true,first=null;
+  form.querySelectorAll('input:not([type=checkbox]),select').forEach(el=>{if(!check(el)){ok=false;first=first||el}});
+  const r=document.getElementById('rgpd'),rm=document.getElementById('rgpd-msg');
+  rm.textContent=r.checked?'':'Cochez la case pour accepter la collecte de vos informations.';if(!r.checked){ok=false;first=first||r}
+  if(!ok){first.focus();return}
+  const btn=document.getElementById('send'),sm=document.getElementById('send-msg');
+  btn.disabled=true;btn.textContent='Envoi…';sm.textContent='';
+  const data={};for(const k in labels)data[k]=form.elements[k].value.trim();
+  try{
+    const r=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...data,a:Q.a,s:Q.s,consent:true,consentText:document.querySelector('.consent span').textContent,startedAt})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||'Erreur');
+    leadId=d.id||"";leadRef=d.ref||"";sent=true;
+  }catch(err){sm.textContent='L’envoi n’a pas abouti. Vérifiez votre connexion puis réessayez.';btn.disabled=false;btn.textContent='Je profite des 3 mois offerts';return}
+  btn.disabled=false;btn.textContent='Je profite des 3 mois offerts';
+  form.hidden=true;done.hidden=false;document.querySelector('.card').scrollIntoView({behavior:'smooth',block:'start'});
+});
+document.getElementById('choices').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  const on=b.getAttribute('aria-checked')!=='true';patients=on?b.dataset.v:'';
+  document.querySelectorAll('#choices button').forEach(x=>x.setAttribute('aria-checked',String(x===b&&on)));
+  document.getElementById('to-promo').textContent=patients?'Valider et voir mon code promo':'Voir mon code promo';});
+document.getElementById('to-promo').addEventListener('click',()=>{
+  if(patients&&leadId){try{fetch('/api/patients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:leadId,ref:leadRef,patients}),keepalive:true})}catch{}}
+  done.hidden=true;promo.hidden=false;document.querySelector('.card').scrollIntoView({behavior:'smooth',block:'start'});});
+document.getElementById('copy-code').addEventListener('click',async e=>{const b=e.currentTarget;
+  try{await navigator.clipboard.writeText('PANDAJO2026');b.textContent='Copié ✓'}catch{const r=document.createRange();r.selectNodeContents(document.getElementById('promo-code'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent='Sélectionné'}
+  setTimeout(()=>b.textContent='Copier',2000)});
+document.getElementById('again').addEventListener('click',()=>{startedAt=null;sent=false;leadId='';patients='';form.reset();document.getElementById('rgpd').checked=false;
+  document.querySelectorAll('#choices button').forEach(x=>x.setAttribute('aria-checked','false'));document.getElementById('to-promo').textContent='Voir mon code promo';
+  promo.hidden=true;done.hidden=true;form.hidden=false;window.scrollTo({top:0})});
+
+// Conditions générales : panneau qui s'ouvre depuis le lien en bas de page
+const cgu=document.getElementById('cgu'),cguOpen=document.getElementById('cgu-open');
+cguOpen.addEventListener('click',()=>{cgu.hidden=false;cgu.firstElementChild.scrollTop=0;document.getElementById('cgu-title').focus({preventScroll:true})});
+function closeCgu(){cgu.hidden=true;cguOpen.focus()}
+document.getElementById('cgu-close').addEventListener('click',closeCgu);
+cgu.addEventListener('click',e=>{if(e.target===cgu)closeCgu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!cgu.hidden)closeCgu()});
+
+// Saisie d'adresse assistée (Base Adresse Nationale, gratuite)
+(()=>{const inp=document.getElementById('adresse'),list=document.getElementById('ac-list');let timer,items=[],sel=-1,ctl;
+function close(){list.hidden=true;inp.setAttribute('aria-expanded','false');sel=-1}
+function render(){list.innerHTML='';items.forEach((f,i)=>{const li=document.createElement('li');li.role='option';li.id='ac-'+i;li.setAttribute('aria-selected',i===sel);li.textContent=f.properties.name;const sm=document.createElement('small');sm.textContent=f.properties.postcode+' '+f.properties.city;li.append(sm);li.addEventListener('mousedown',ev=>{ev.preventDefault();pick(i)});list.append(li)});list.hidden=!items.length;inp.setAttribute('aria-expanded',String(!!items.length))}
+function pick(i){const f=items[i];if(!f)return;inp.value=f.properties.label;close();check(inp)}
+inp.addEventListener('input',()=>{clearTimeout(timer);const q=inp.value.trim();if(q.length<4){items=[];close();return}
+ timer=setTimeout(async()=>{try{ctl?.abort();ctl=new AbortController();const r=await fetch('https://api-adresse.data.gouv.fr/search/?limit=5&autocomplete=1&q='+encodeURIComponent(q),{signal:ctl.signal});items=(await r.json()).features||[];sel=-1;render()}catch{}},220)});
+inp.addEventListener('keydown',e=>{if(list.hidden)return;if(e.key==='ArrowDown'){sel=Math.min(items.length-1,sel+1);render();e.preventDefault()}else if(e.key==='ArrowUp'){sel=Math.max(0,sel-1);render();e.preventDefault()}else if(e.key==='Enter'&&sel>=0){pick(sel);e.preventDefault()}else if(e.key==='Escape')close()});
+inp.addEventListener('blur',()=>setTimeout(close,120));})();
+</script>
+</body>
+</html>
