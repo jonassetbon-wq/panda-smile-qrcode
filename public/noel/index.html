@@ -102,7 +102,10 @@ details.rules li{margin-bottom:6px}
 .foot b{display:block;color:var(--gold);letter-spacing:.2em;font-size:.72rem;margin-bottom:2px}
 .foot i{font-family:var(--display);font-size:.95rem;color:var(--cream)}
 
+/* Neige qui tombe (au-dessus de tout, sans gêner les clics) */
+#snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20}
 @media (prefers-reduced-motion:reduce){
+  #snow{display:none}
   .intro{height:auto}.stage{position:relative;height:auto;padding:16px 0 0}
   .poster{position:relative;left:auto;margin:0 auto;transform:none!important}
   .flyer,.hint{display:none}
@@ -112,6 +115,7 @@ details.rules li{margin-bottom:6px}
 </head>
 <body>
 
+<canvas id="snow" aria-hidden="true"></canvas>
 <section class="intro" id="intro" aria-label="Affiche du jeu">
   <div class="stage" id="stage">
     <div class="flakes"></div>
@@ -145,7 +149,7 @@ details.rules li{margin-bottom:6px}
           <span class="s">Entre 100 g et 3 kg, à 100 g près.</span>
           <label class="f" data-f="guess"><span class="sr" hidden>Poids</span><select name="guess" id="guess" required aria-label="Poids du nounours"><option value="">Choisis un poids</option></select></label>
         </div>
-        <label class="consent" data-f="consent"><input type="checkbox" name="consent" id="consent"><span>J’accepte que mes coordonnées servent uniquement à ce jeu&nbsp;: e-mail de confirmation et contact des gagnants. Elles seront supprimées dans les 3 mois.</span></label>
+        <label class="consent" data-f="consent"><input type="checkbox" name="consent" id="consent"><span>J’accepte que mes coordonnées servent uniquement à ce jeu, pour prévenir les gagnants. Elles seront supprimées dans les 3 mois.</span></label>
         <p class="err" id="err" role="alert"></p>
         <button class="cta" type="submit" id="send">Envoyer ma réponse</button>
       </form>
@@ -154,9 +158,8 @@ details.rules li{margin-bottom:6px}
         <ol>
           <li>Jeu gratuit et sans obligation d’achat, organisé par le cabinet d’orthodontie du Dr Helena Sebag Setbon et du Dr Olivier Setbon, ouvert jusqu’au 31/12/2026 à minuit.</li>
           <li>Une seule participation par personne (même e-mail ou même téléphone). Les mineurs participent avec l’accord d’un parent.</li>
-          <li>Le gagnant du casque JBL Tune 680NC est tiré au sort parmi les bonnes réponses. S’il n’y en a aucune, le tirage se fait parmi les pronostics les plus proches du poids réel.</li>
-          <li>Le nounours est offert à un second participant, choisi par le cabinet.</li>
-          <li>Les gagnants sont prévenus par e-mail, puis contactés par téléphone pour la remise des lots. Les lots ne sont ni échangeables ni remboursables.</li>
+          <li>À la fin du jeu, le nounours est pesé et les pronostics sont classés du plus juste au moins juste. Le cabinet choisit les deux gagnants parmi les pronostics les plus proches : l’un reçoit le casque JBL Tune 680NC, l’autre le nounours.</li>
+          <li>Les gagnants sont prévenus par téléphone ou par e-mail pour la remise des lots. Les lots ne sont ni échangeables ni remboursables.</li>
           <li>Les coordonnées ne servent qu’à ce jeu et sont supprimées dans les 3 mois. Pour les faire effacer plus tôt, il suffit de le demander au cabinet.</li>
         </ol>
       </details>
@@ -172,7 +175,7 @@ details.rules li{margin-bottom:6px}
 
     <div class="done" id="closed" hidden>
       <h2>Le jeu est terminé</h2>
-      <p>Merci à tous les participants&nbsp;! Les gagnants sont prévenus par e-mail.</p>
+      <p>Merci à tous les participants&nbsp;! Les gagnants seront prévenus par le cabinet.</p>
     </div>
   </div>
   <p class="foot"><b>CABINET D’ORTHODONTIE</b><i>Dr Helena Sebag Setbon &amp; Dr Olivier Setbon</i></p>
@@ -289,12 +292,86 @@ details.rules li{margin-bottom:6px}
         $('#play').hidden = true; $('#done').hidden = false;
         $('#done-title').textContent = `C’est noté, ${d.prenom} !`;
         $('#done-guess').textContent = res.guessLabel || fmt(d.guess);
-        $('#done-msg').textContent = res.mailSent ? `Un e-mail de confirmation vient de partir à ${d.email}. Résultats après le 31 décembre. Bonne chance !` : `Ta participation est bien enregistrée. Résultats après le 31 décembre. Bonne chance !`;
+        $('#done-msg').textContent = 'Ta participation est bien enregistrée. Les gagnants seront prévenus après le 31 décembre. Bonne chance !';
         $('#done').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
       }
     } catch { $('#err').textContent = 'Pas de connexion internet. Réessaie dans un instant.'; }
     btn.disabled = false; btn.textContent = 'Envoyer ma réponse';
   });
+})();
+
+/* ---------- Neige : flocons qui tombent, puis poudreuse qui s'accumule en bas de l'écran ---------- */
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = document.getElementById('snow'), cx = cv.getContext('2d');
+  const COL = 4; // largeur d'une colonne de poudreuse (px)
+  let w = 0, h = 0, dpr = 1, flakes = [], pile = [], raf = 0;
+  const t0 = performance.now();
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const maxH = () => Math.min(140, h * 0.16); // la couche ne dépasse pas ~16 % de l'écran
+  function make(anywhere) {
+    const r = Math.random() < 0.12 ? rnd(2.6, 4) : rnd(0.8, 2.4);
+    return { x: rnd(0, w), y: anywhere ? rnd(-h, h) : rnd(-40, -5), r, vy: 0.35 + r * 0.32, a: rnd(0, 6.28), sw: rnd(0.4, 1.3), o: rnd(0.55, 0.95) };
+  }
+  function size() {
+    const ow = w, old = pile;
+    dpr = Math.min(2, devicePixelRatio || 1);
+    w = innerWidth; h = innerHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.ceil(w / COL) + 1;
+    pile = Array.from({ length: n }, (_, i) => (old.length ? old[Math.min(old.length - 1, Math.round(((i * COL) / (ow || w)) * (old.length - 1)))] || 0 : 0));
+    const want = Math.round(Math.min(160, Math.max(50, (w * h) / 9000)));
+    while (flakes.length < want) flakes.push(make(true));
+    flakes.length = want;
+  }
+  function land(x, r) {
+    const c = Math.round(x / COL), area = r * 3.2;
+    for (let k = -3; k <= 3; k++) {
+      const i = c + k; if (i < 0 || i >= pile.length) continue;
+      pile[i] = Math.min(maxH(), pile[i] + (area * Math.exp(-(k * k) / 4)) / 7);
+    }
+  }
+  function relax() { // la poudreuse s'étale comme un vrai tas de neige
+    for (let i = 1; i < pile.length; i++) {
+      const d = pile[i] - pile[i - 1];
+      if (Math.abs(d) > 2.2) { const m = (d - Math.sign(d) * 2.2) / 2; pile[i] -= m; pile[i - 1] += m; }
+    }
+  }
+  function drawPile() {
+    let top = 0; for (const v of pile) if (v > top) top = v;
+    if (top < 0.3) return;
+    cx.beginPath(); cx.moveTo(0, h); cx.lineTo(0, h - pile[0]);
+    for (let i = 1; i < pile.length; i++) {
+      const x = i * COL, y = h - pile[i], px = (i - 1) * COL, py = h - pile[i - 1];
+      cx.quadraticCurveTo(px, py, (px + x) / 2, (py + y) / 2);
+    }
+    cx.lineTo(w, h); cx.closePath();
+    const g = cx.createLinearGradient(0, h - top, 0, h);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#f8f4ec'); g.addColorStop(1, '#e6e9f4');
+    cx.save(); cx.shadowColor = 'rgba(0,0,0,.25)'; cx.shadowBlur = 10; cx.shadowOffsetY = -2; cx.fillStyle = g; cx.fill(); cx.restore();
+  }
+  let last = performance.now(), n = 0;
+  function tick(now) {
+    const dt = Math.min(3, (now - last) / 16.67); last = now;
+    cx.clearRect(0, 0, w, h);
+    const settle = now - t0 > 6000; // la neige commence à tenir au bout de quelques secondes
+    cx.fillStyle = '#fff';
+    for (const f of flakes) {
+      f.a += 0.012 * dt; f.y += f.vy * dt; f.x += Math.sin(f.a) * f.sw * 0.5 * dt + 0.12 * dt;
+      if (f.x > w + 6) f.x = -6; else if (f.x < -6) f.x = w + 6;
+      const ground = h - (pile[Math.round(f.x / COL)] || 0);
+      if (f.y + f.r >= ground) { if (settle && f.x >= 0 && f.x <= w) land(f.x, f.r); Object.assign(f, make(false)); continue; }
+      cx.globalAlpha = f.o; cx.beginPath(); cx.arc(f.x, f.y, f.r, 0, 6.283); cx.fill();
+    }
+    cx.globalAlpha = 1;
+    if (++n % 3 === 0) relax();
+    drawPile();
+    raf = requestAnimationFrame(tick);
+  }
+  addEventListener('resize', size);
+  document.addEventListener('visibilitychange', () => { cancelAnimationFrame(raf); if (!document.hidden) { last = performance.now(); raf = requestAnimationFrame(tick); } });
+  size(); raf = requestAnimationFrame(tick);
+  window.__snow = { pile: () => pile, flakes: () => flakes.length };
 })();
 </script>
 </body>

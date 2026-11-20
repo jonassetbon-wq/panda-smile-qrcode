@@ -1,7 +1,6 @@
 import { json, readToken, readAll, people } from "./lib/common.mjs";
 import { attendees, WEBINAR } from "./lib/webinar.mjs";
 import { NOEL, readState } from "./lib/noel.mjs";
-import { mailReady } from "./lib/mail.mjs";
 
 // Toutes les données brutes pour le tableau de bord. Réservé à l'administrateur.
 export default async (req) => {
@@ -13,7 +12,7 @@ export default async (req) => {
     people: people.map(({ id, label, fullName }) => ({ id, label, fullName })),
     scans, events, leads, logins,
     webinar: { ...WEBINAR, attendees }, webi, webiEvents,
-    noelGame: NOEL, noel, noelEvents, noelState, mailReady: mailReady(),
+    noelGame: NOEL, noel, noelEvents, noelState,
   });
 };
 

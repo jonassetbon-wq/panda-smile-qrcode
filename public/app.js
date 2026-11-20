@@ -81,9 +81,10 @@ function setCat(c, quiet) {
   $('#webi-stats').hidden = !w; $('#noel-stats').hidden = !n; $('#jo-stats').hidden = w || n; $('#jo-selects').hidden = w || n;
   $('#q').placeholder = n ? 'Rechercher un nom, un e-mail, un téléphone…' : w ? 'Rechercher un nom, une profession, une ville…' : 'Rechercher un nom, un cabinet, une ville…';
   $('#reset-note').textContent = n ? 'Efface toutes les participations au jeu de Noël, le poids réel et les gagnants. Le webinaire et la journée de l’orthodontie ne changent pas.' : w ? 'Efface toutes les réponses au questionnaire du webinaire. Les stats de la journée de l’orthodontie ne changent pas.' : 'Efface tous les scans et tous les inscrits de la journée de l’orthodontie (par exemple après les essais). Le webinaire et les codes des ambassadeurs ne changent pas.';
-  $('#sort option[value=dept]').textContent = n ? 'Pronostic' : 'Département';
+  $('#sort option[value=dept]').textContent = n ? 'Plus justes d’abord' : 'Département';
   $('#export').textContent = n ? 'Exporter le jeu de Noël en Excel' : w ? 'Exporter le webinaire en Excel' : 'Exporter tout en Excel';
   mapFitted = false;
+  drawQR();
   if (!quiet) render();
 }
 $('#cat').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && b.dataset.v !== CAT) setCat(b.dataset.v); });
@@ -98,8 +99,13 @@ panes.addEventListener('scroll', () => {
 }, { passive: true });
 
 /* ---------- QR code ---------- */
-function myUrl() { return `${location.origin}/s/${session.id}`; }
+const isNoelQR = () => !!session?.admin && CAT === 'noel';
+function myUrl() { return isNoelQR() ? `${location.origin}/noel` : `${location.origin}/s/${session.id}`; }
 function drawQR() {
+  if (!session) return;
+  const n = isNoelQR();
+  $('.qr-panda').hidden = n; $('.qr-bear').hidden = !n; $('.qr-offer').hidden = n;
+  $('.qr-card').classList.toggle('noel', n);
   const qr = qrcode(0, 'H'); qr.addData(myUrl()); qr.make();
   $('#qr').innerHTML = qr.createSvgTag({ cellSize: 8, margin: 0, scalable: true });
   const svg = $('#qr svg'); svg.querySelectorAll('path').forEach((p) => p.setAttribute('fill', '#0b0f19'));
@@ -324,7 +330,7 @@ async function adminPost(body) {
 }
 $('#leads').addEventListener('click', async (e) => {
   const pk = e.target.closest('.pick-noel');
-  if (pk) { if (!armed(pk, 'Appuie encore pour confirmer')) return; pk.disabled = true; await noelAction({ action: 'pick', id: pk.dataset.id }); return; }
+  if (pk) { if (!pk.disabled) await onPick(pk); return; }
   const nb = e.target.closest('.del-noel');
   if (nb) {
     if (!armed(nb, 'Appuie encore pour supprimer définitivement')) return;
@@ -587,31 +593,70 @@ function renderNoelChart(parts, target) {
   };
   if (nChart) { nChart.data = cfg.data; nChart.options = cfg.options; nChart.update('none'); } else nChart = new Chart(box, cfg);
 }
+const LOTS = { casque: '🎧 Casque JBL Tune 680NC', peluche: '🧸 Le nounours' };
+/* Participants classés du pronostic le plus juste au moins juste (à écart égal : le premier arrivé d'abord). */
+function ranked() {
+  const st = NST(); if (!st.realWeight) return [];
+  return noelAll().slice().sort((a, b) => Math.abs(a.guess - st.realWeight) - Math.abs(b.guess - st.realWeight) || a.t.localeCompare(b.t));
+}
 function winnerCard(kind) {
   const st = NST(); const w = st[kind]; const r = w && partById(w.id);
-  const title = kind === 'casque' ? '🎧 Casque JBL Tune 680NC' : '🧸 Le nounours';
-  if (!w) {
-    if (kind === 'casque') return `<h3>${title}</h3><p class="meta">${st.realWeight ? 'Tirage au sort parmi les bonnes réponses (ou, s’il n’y en a aucune, parmi les pronostics les plus proches).' : 'Enregistre d’abord le poids réel du nounours.'}</p><div class="acts"><button type="button" class="btn red" data-act="draw" ${st.realWeight ? '' : 'disabled'}>Tirer au sort le gagnant</button></div>`;
-    return `<h3>${title}</h3><p class="meta">Choisis le gagnant dans l’onglet Inscrits : bouton « Donner le nounours » sous chaque participant.</p><div class="acts"><button type="button" class="btn line" data-act="see">Voir les réponses</button></div>`;
+  if (!w) return `<h3>${LOTS[kind]}</h3><p class="meta">${st.realWeight ? 'Pas encore attribué. Choisis le gagnant dans le classement ci-dessous.' : 'Entre d’abord le poids réel : les participants seront classés du plus juste au moins juste.'}</p>`;
+  if (!r) return `<h3>${LOTS[kind]}</h3><span class="who">Participant supprimé</span><div class="acts"><button type="button" class="btn line" data-act="clear" data-kind="${kind}">Retirer</button></div>`;
+  const ecart = st.realWeight != null ? ` · écart ${gfmt(Math.abs(r.guess - st.realWeight))}` : '';
+  return `<h3>${LOTS[kind]}</h3><span class="who">${esc(r.prenom)} ${esc(r.nom)}</span>
+    <span class="meta">Pronostic ${gfmt(r.guess)}${ecart}</span>
+    <span class="meta">📞 <a href="tel:${esc(r.tel.replace(/[^\d+]/g, ''))}">${esc(r.tel)}</a> · ✉️ <a href="mailto:${esc(r.email)}">${esc(r.email)}</a></span>
+    <p class="meta">À prévenir par le cabinet (téléphone ou e-mail). Attribué le ${frDate(w.at)}.</p>
+    <div class="acts"><button type="button" class="btn line" data-act="clear" data-kind="${kind}">Retirer ce lot</button></div>`;
+}
+function pickButtons(r, st, compact) {
+  const out = [];
+  for (const kind of ['casque', 'peluche']) {
+    const other = kind === 'casque' ? 'peluche' : 'casque';
+    if (st[kind]?.id === r.id || st[other]?.id === r.id) continue;
+    out.push(`<button type="button" class="btn ${kind === 'casque' ? '' : 'red'} pick-noel${compact ? ' sm' : ''}" data-kind="${kind}" data-id="${esc(r.id)}" title="${kind === 'casque' ? 'Donner le casque' : 'Donner le nounours'}">${compact ? (kind === 'casque' ? '🎧' : '🧸') : kind === 'casque' ? '🎧 Donner le casque' : '🧸 Donner le nounours'}</button>`);
   }
-  const who = r ? `${esc(r.prenom)} ${esc(r.nom)}` : 'Participant supprimé';
-  const meta = r ? `${esc(r.email)} · ${esc(r.tel)} · pronostic ${gfmt(r.guess)}` : '';
-  const how = kind === 'casque' ? `<p class="meta">Tiré au sort le ${frDate(w.at)} parmi ${w.poolSize} ${w.poolKind === 'exact' ? `bonne${w.poolSize > 1 ? 's' : ''} réponse${w.poolSize > 1 ? 's' : ''}` : `pronostic${w.poolSize > 1 ? 's' : ''} le${w.poolSize > 1 ? 's' : ''} plus proche${w.poolSize > 1 ? 's' : ''} (aucune réponse exacte)`}.</p>` : `<p class="meta">Choisi le ${frDate(w.at)}.</p>`;
-  const acts = w.notifiedAt
-    ? `<span class="sent">✓ E-mail envoyé le ${frDate(w.notifiedAt)}</span>`
-    : `<button type="button" class="btn" data-act="notify" data-kind="${kind}" ${DATA.mailReady && r ? '' : 'disabled'}>Envoyer l’e-mail au gagnant</button>${kind === 'casque' ? '<button type="button" class="btn line" data-act="draw">Refaire le tirage</button>' : ''}<button type="button" class="btn line" data-act="clear" data-kind="${kind}">Annuler</button>`;
-  return `<h3>${title}</h3><span class="who">${who}</span><span class="meta">${meta}</span>${how}<div class="acts">${acts}</div>`;
+  return out.join('');
 }
 function renderDraw() {
   const st = NST();
-  $('#n-mail').innerHTML = DATA.mailReady ? '✓ E-mails activés : chaque participant reçoit une confirmation, et les gagnants reçoivent leur e-mail quand tu appuies sur « Envoyer ».' : '⚠️ E-mails pas encore activés (clé Resend absente). Les participations sont bien enregistrées, mais aucun e-mail ne part.';
   const inp = $('#n-weight'); if (document.activeElement !== inp) inp.value = st.realWeight || '';
-  $('#n-weight-info').textContent = st.realWeight ? `Bonne réponse = ${gfmt(Math.round(st.realWeight / 100) * 100)} (poids réel arrondi à 100 g).` : 'À peser à la fin du jeu. Le pronostic gagnant est le poids réel arrondi à 100 g.';
+  $('#n-weight-info').textContent = st.realWeight ? `Poids réel : ${gfmt(st.realWeight)}. Les participants sont classés ci-dessous du plus juste au moins juste.` : 'À peser à la fin du jeu. Dès qu’il est enregistré, tous les participants sont classés du plus juste au moins juste.';
   $('#n-casque').innerHTML = winnerCard('casque');
   $('#n-peluche').innerHTML = winnerCard('peluche');
+  renderScale(st);
   const h = (st.history || []).slice().reverse();
   $('#n-hist').innerHTML = h.length ? h.map((x) => `<li><time>${frDate(x.t)}</time><span>${esc(x.what)}</span></li>`).join('') : '<li class="muted">Rien pour l’instant.</li>';
 }
+/* Balance : le poids du nounours au centre, les pronostics plus lourds au-dessus, les plus légers en dessous.
+   Chaque ligne = un poids, avec les prénoms de ceux qui l'ont choisi ; plus on s'éloigne du centre, moins c'est juste. */
+let SIDE = 'all';
+function renderScale(st) {
+  const box = $('#n-rank');
+  if (!st.realWeight) { box.innerHTML = '<li class="muted">Entre le poids réel pour voir tous les participants rangés autour du poids du nounours.</li>'; return; }
+  const W = st.realWeight, all = noelAll();
+  const groups = new Map();
+  all.forEach((r) => { if (!groups.has(r.guess)) groups.set(r.guess, []); groups.get(r.guess).push(r); });
+  const weights = [...groups.keys()];
+  const above = weights.filter((g) => g > W).sort((a, b) => b - a);   // du plus loin au plus proche
+  const exact = weights.filter((g) => g === W);
+  const below = weights.filter((g) => g < W).sort((a, b) => b - a);   // du plus proche au plus loin
+  const sign = (g) => (g > W ? '+' : g < W ? '−' : '');
+  const row = (g, side) => {
+    const ppl = groups.get(g).sort((a, b) => a.t.localeCompare(b.t));
+    return `<li class="lvl ${side}"><span class="wt"><b>${gfmt(g)}</b><small>${sign(g)}${gfmt(Math.abs(g - W))}</small></span><span class="ppl">${ppl.map((r) => {
+      const won = st.casque?.id === r.id ? ' won-c' : st.peluche?.id === r.id ? ' won-p' : '';
+      return `<span class="pp${won}"><span class="pn">${esc(r.prenom)} ${esc(r.nom.charAt(0))}.${won ? (won === ' won-c' ? ' 🎧' : ' 🧸') : ''}</span>${pickButtons(r, st, true)}</span>`;
+    }).join('')}</span></li>`;
+  };
+  const center = `<li class="lvl center"><span class="bear-w">🧸 Le nounours pèse <b>${gfmt(W)}</b></span>${exact.length ? `<span class="ppl">${exact.map((g) => groups.get(g).map((r) => { const won = st.casque?.id === r.id ? ' won-c' : st.peluche?.id === r.id ? ' won-p' : ''; return `<span class="pp${won}"><span class="pn">${esc(r.prenom)} ${esc(r.nom.charAt(0))}.${won ? (won === ' won-c' ? ' 🎧' : ' 🧸') : ''}</span>${pickButtons(r, st, true)}</span>`; }).join('')).join('')}</span>` : '<span class="meta">Personne n’a trouvé le poids exact.</span>'}</li>`;
+  const nA = above.reduce((n, g) => n + groups.get(g).length, 0), nB = below.reduce((n, g) => n + groups.get(g).length, 0);
+  const chips = `<li class="scale-chips"><div class="chips">${[['all', `Tous (${all.length})`], ['above', `Au-dessus (${nA})`], ['below', `En dessous (${nB})`]].map(([v, l]) => `<button type="button" data-side="${v}" class="${SIDE === v ? 'on' : ''}">${l}</button>`).join('')}</div></li>`;
+  box.innerHTML = chips + (SIDE !== 'below' ? above.map((g) => row(g, 'up')).join('') : '') + center + (SIDE !== 'above' ? below.map((g) => row(g, 'down')).join('') : '');
+}
+$('#n-rank').addEventListener('click', (e) => { const c = e.target.closest('[data-side]'); if (c) { SIDE = c.dataset.side; renderScale(NST()); } });
+
 async function noelAction(body) {
   $('#n-err').textContent = '';
   try {
@@ -623,17 +668,18 @@ async function noelAction(body) {
   } catch { $('#n-err').textContent = 'Pas de connexion internet.'; return false; }
 }
 $('#n-weight-save').addEventListener('click', () => noelAction({ action: 'weight', grams: Number($('#n-weight').value) }));
+$('#n-weight').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#n-weight-save').click(); });
 function goLeads() { const i = tabs.findIndex(([id]) => id === 'pane-leads'); if (i >= 0) panes.scrollTo({ left: i * panes.clientWidth, behavior: 'smooth' }); }
 $('#n-see').addEventListener('click', goLeads);
-$('#noel-stats').addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
-  const act = b.dataset.act;
-  if (act === 'see') return goLeads();
-  if (act === 'draw') { if (!armed(b, NST().casque ? 'Appuie encore : nouveau tirage' : 'Appuie encore pour tirer au sort')) return; }
-  if (act === 'notify') { if (!armed(b, 'Appuie encore : l’e-mail part')) return; }
-  if (act === 'clear') { if (!armed(b, 'Appuie encore pour annuler')) return; }
+async function onPick(b) {
+  if (!armed(b, b.dataset.kind === 'casque' ? 'Confirmer : casque' : 'Confirmer : nounours')) return;
   b.disabled = true;
-  await noelAction({ action: act, kind: b.dataset.kind });
+  await noelAction({ action: 'pick', kind: b.dataset.kind, id: b.dataset.id });
+}
+$('#noel-stats').addEventListener('click', async (e) => {
+  const pk = e.target.closest('.pick-noel'); if (pk && !pk.disabled) return onPick(pk);
+  const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+  if (b.dataset.act === 'clear') { if (!armed(b, 'Appuie encore pour retirer')) return; b.disabled = true; await noelAction({ action: 'clear', kind: b.dataset.kind }); }
 });
 function renderNoelLeads() {
   const q = $('#q').value.trim().toLowerCase();
@@ -641,16 +687,15 @@ function renderNoelLeads() {
   const target = st.realWeight ? Math.round(st.realWeight / 100) * 100 : null;
   let rows = noelFiltered().parts.filter((r) => !q || [r.prenom, r.nom, r.email, r.tel, gfmt(r.guess)].join(' ').toLowerCase().includes(q));
   const s = $('#sort').value;
-  rows.sort(s === 'old' ? (a, b) => a.t.localeCompare(b.t) : s === 'name' ? (a, b) => a.nom.localeCompare(b.nom, 'fr') : s === 'dept' ? (a, b) => a.guess - b.guess : (a, b) => b.t.localeCompare(a.t));
+  const near = (r) => (st.realWeight ? Math.abs(r.guess - st.realWeight) : r.guess);
+  rows.sort(s === 'old' ? (a, b) => a.t.localeCompare(b.t) : s === 'name' ? (a, b) => a.nom.localeCompare(b.nom, 'fr') : s === 'dept' ? (a, b) => near(a) - near(b) || a.t.localeCompare(b.t) : (a, b) => b.t.localeCompare(a.t));
   $('#leads-count').textContent = `${rows.length} participation${rows.length > 1 ? 's' : ''} au jeu de Noël${F.period !== 'all' ? ' sur la période' : ''}`;
   const dd = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
   $('#leads').innerHTML = rows.length ? rows.map((r) => {
-    const isC = st.casque?.id === r.id, isP = st.peluche?.id === r.id;
-    const badges = (isC ? '<span class="badge gold">Casque</span>' : '') + (isP ? '<span class="badge bear">Nounours</span>' : '') + (target && r.guess === target ? '<span class="badge ok">Bonne réponse</span>' : '');
-    const canPick = !isC && !isP && !st.peluche?.notifiedAt;
+    const badges = (st.casque?.id === r.id ? '<span class="badge gold">Casque</span>' : '') + (st.peluche?.id === r.id ? '<span class="badge bear">Nounours</span>' : '') + (target && r.guess === target ? '<span class="badge ok">Bonne réponse</span>' : '');
     return `<li><details class="lead"><summary><span class="pdot" style="background:${target && r.guess === target ? '#ffd166' : '#e5484d'}"></span><span class="nm">${esc(r.prenom)} ${esc(r.nom)}${badges}</span><span class="when">${frDate(r.t)}</span><span class="sub">Pronostic <b>${gfmt(r.guess)}</b>${st.realWeight ? ` · écart ${gfmt(Math.abs(r.guess - st.realWeight))}` : ''}</span></summary>
-    <dl>${dd('E-mail', r.email)}${dd('Téléphone', r.tel)}${dd('Pronostic', gfmt(r.guess))}${dd('E-mail de confirmation', r.mail ? (r.mail.ok ? 'Envoyé' : 'Non envoyé : ' + r.mail.error) : '')}${dd('Téléphone utilisé', [r.device, r.os].filter(Boolean).join(' · '))}${dd('Rempli en', Number.isFinite(r.durationSec) ? r.durationSec + ' s' : '')}</dl>
-    ${canPick ? `<button type="button" class="btn red pick pick-noel" data-id="${esc(r.id)}">🧸 Donner le nounours</button>` : ''}
+    <dl>${dd('E-mail', r.email)}${dd('Téléphone', r.tel)}${dd('Pronostic', gfmt(r.guess))}${dd('Téléphone utilisé', [r.device, r.os].filter(Boolean).join(' · '))}${dd('Rempli en', Number.isFinite(r.durationSec) ? r.durationSec + ' s' : '')}</dl>
+    <div class="pick">${pickButtons(r, st)}</div>
     <button type="button" class="del del-noel" data-id="${esc(r.id)}" data-t="${esc(r.t)}">Supprimer cette participation</button></details></li>`;
   }).join('') : '<li class="muted">Aucune participation pour l’instant.</li>';
 }
@@ -660,10 +705,12 @@ function exportNoel() {
   const wb = XLSX.utils.book_new();
   const add = (name, rows, widths) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Aucune donnée' }]); if (rows.length) ws['!autofilter'] = { ref: ws['!ref'] }; if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
   const dt = (t) => new Date(t).toLocaleString('fr-FR', { timeZone: TZ });
-  add('Participations', parts.map((r) => ({ 'Date et heure': dt(r.t), Prénom: r.prenom, Nom: r.nom, 'E-mail': r.email, Téléphone: r.tel, 'Pronostic (g)': r.guess, 'Écart (g)': st.realWeight ? Math.abs(r.guess - st.realWeight) : '', Gagnant: st.casque?.id === r.id ? 'Casque' : st.peluche?.id === r.id ? 'Nounours' : '', 'E-mail de confirmation': r.mail ? (r.mail.ok ? 'Envoyé' : 'Non envoyé') : '', 'Rempli en (s)': r.durationSec ?? '' })), [18, 14, 16, 28, 15, 12, 10, 10, 14, 10]);
+  add('Participations', parts.map((r) => ({ 'Date et heure': dt(r.t), Prénom: r.prenom, Nom: r.nom, 'E-mail': r.email, Téléphone: r.tel, 'Pronostic (g)': r.guess, 'Écart (g)': st.realWeight ? Math.abs(r.guess - st.realWeight) : '', Gagnant: st.casque?.id === r.id ? 'Casque' : st.peluche?.id === r.id ? 'Nounours' : '', 'Rempli en (s)': r.durationSec ?? '' })), [18, 14, 16, 28, 15, 12, 10, 10, 14, 10]);
+  const near = (r) => (st.realWeight ? Math.abs(r.guess - st.realWeight) : 0);
+  if (st.realWeight) add('Classement', parts.slice().sort((a, b) => near(a) - near(b) || a.t.localeCompare(b.t)).map((r, i) => ({ Rang: i + 1, Prénom: r.prenom, Nom: r.nom, 'Pronostic (g)': r.guess, 'Écart (g)': near(r), Téléphone: r.tel, 'E-mail': r.email })), [6, 14, 16, 12, 10, 15, 28]);
   const by = []; for (let g = 100; g <= 3000; g += 100) by.push({ Pronostic: gfmt(g), 'Grammes': g, Nombre: parts.filter((r) => r.guess === g).length });
   add('Par poids', by, [12, 10, 9]);
-  add('Tirage', (st.history || []).map((h) => ({ 'Date et heure': dt(h.t), Action: h.what })), [18, 70]);
+  add('Historique', (st.history || []).map((h) => ({ 'Date et heure': dt(h.t), Action: h.what })), [18, 70]);
   const stamp = new Date().toLocaleString('fr-FR', { timeZone: TZ }).replace(/[/:]/g, '-').replace(/\s/g, '_');
   XLSX.writeFile(wb, `PandaSmile_jeu_noel_${stamp}.xlsx`);
 }

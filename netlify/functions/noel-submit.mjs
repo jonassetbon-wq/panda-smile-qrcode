@@ -1,6 +1,5 @@
 import { store, json, newId, keyFor, parseUA } from "./lib/common.mjs";
-import { NOEL, WEIGHTS, normPhone, isOpen, idxKeys, mailConfirmation, fmtWeight } from "./lib/noel.mjs";
-import { sendMail } from "./lib/mail.mjs";
+import { NOEL, WEIGHTS, normPhone, isOpen, idxKeys, fmtWeight } from "./lib/noel.mjs";
 
 const clean = (v, n = 200) => String(v ?? "").trim().slice(0, n);
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,18 +50,12 @@ export default async (req) => {
     s: clean(b.s, 40),
     os: ua.os, device: ua.device,
     durationSec: Number.isFinite(started) ? Math.max(0, Math.round((Date.now() - started) / 1000)) : null,
-    mail: null,
   };
   const key = keyFor(t, id);
   await parts.setJSON(key, rec);
   for (const k of keys) await idx.set(k, key);
 
-  // E-mail de confirmation : la participation compte même si l'envoi échoue.
-  const m = await sendMail({ to: email, ...mailConfirmation(rec) });
-  rec.mail = m.ok ? { ok: true, id: m.id, t: new Date().toISOString() } : { ok: false, error: m.error };
-  await parts.setJSON(key, rec);
-
-  return json({ ok: true, id, guess, guessLabel: fmtWeight(guess), mailSent: m.ok });
+  return json({ ok: true, id, guess, guessLabel: fmtWeight(guess) });
 };
 
 export const config = { path: "/api/noel/submit" };

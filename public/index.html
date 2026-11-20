@@ -46,7 +46,7 @@
     <section class="pane" id="pane-qr" aria-label="QR code">
       <div class="qr-wrap">
         <p class="qr-hello">Bonjour <b id="qr-name"></b></p>
-        <div class="qr-card"><div id="qr"></div><img class="qr-panda" src="/img/icon.png" alt=""></div>
+        <div class="qr-card"><div id="qr"></div><img class="qr-panda" src="/img/icon.png" alt=""><div class="qr-bear" hidden><div class="qr-disc"><img src="/noel/img/nounours-qr.webp" alt=""></div><img class="qr-pop" src="/noel/img/nounours-qr.webp" alt="Nounours"></div></div>
         <p class="qr-offer"><strong>3 mois de PandaSmile offerts</strong>Faites scanner ce code aux praticiens</p>
         <p class="qr-link"><span id="qr-url"></span><button type="button" id="copy" class="mini">Copier</button></p>
         <p class="qr-hint" id="swipe-hint" hidden>Glisse vers la gauche pour voir les stats en direct →</p>
@@ -88,8 +88,7 @@
         <div id="noel-stats" hidden>
           <div class="kpis" id="n-kpis"></div>
           <article class="block draw">
-            <h2>Tirage au sort</h2>
-            <p class="note" id="n-mail"></p>
+            <h2>Gagnants</h2>
             <div class="draw-row">
               <label class="lbl" for="n-weight">Poids réel du nounours (g)</label>
               <div class="inline"><input id="n-weight" type="number" inputmode="numeric" min="1" max="20000" step="1" placeholder="ex. 1450"><button type="button" class="mini" id="n-weight-save">Enregistrer</button></div>
@@ -98,7 +97,11 @@
             <div class="winner" id="n-casque"></div>
             <div class="winner" id="n-peluche"></div>
             <p class="err" id="n-err" role="alert"></p>
-            <details class="hist"><summary>Historique du tirage</summary><ul class="feed" id="n-hist"></ul></details>
+          </article>
+          <article class="block" id="n-rank-block">
+            <h2>Tous les pronostics autour du poids du nounours</h2><p class="note">Au-dessus : ceux qui ont vu plus lourd. En dessous : plus léger. Plus on s’éloigne du centre, moins c’est juste. Touche 🎧 ou 🧸 à côté d’un prénom pour lui donner le casque ou le nounours.</p>
+            <ol class="rank-list" id="n-rank"></ol>
+            <details class="hist"><summary>Historique</summary><ul class="feed" id="n-hist"></ul></details>
           </article>
           <button type="button" class="cta ghost" id="n-see">Voir les réponses</button>
           <article class="block"><h2>Entonnoir</h2><div id="n-funnel" class="funnel"></div></article>

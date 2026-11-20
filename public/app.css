@@ -61,6 +61,14 @@ button,input,select{font:inherit;color:inherit}
 .qr-card{position:relative;background:#fff;border-radius:28px;padding:18px;width:min(78vw,52vh,360px);aspect-ratio:1;max-width:100%;box-shadow:0 20px 50px #000a}
 #qr,#qr svg{width:100%;height:100%;display:block}
 .qr-panda{position:absolute;left:50%;top:50%;width:22%;height:auto;transform:translate(-50%,-50%);border-radius:50%;border:5px solid #fff;background:#fff}
+/* QR du jeu de Noël : le nounours sort du disque rouge au centre */
+.qr-card.noel{box-shadow:0 20px 50px #000a,0 0 0 4px #b3172b}
+.qr-bear{position:absolute;left:50%;top:51.5%;width:27%;aspect-ratio:1;transform:translate(-50%,-50%)}
+.qr-bear[hidden]{display:none}
+.qr-disc{position:absolute;inset:0;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 40%,#d22a3e,#b3172b 60%,#8e0f20);box-shadow:0 0 0 5px #fff,0 0 0 6px #0001}
+.qr-bear img{position:absolute;left:5%;width:90%;height:auto;bottom:4%;pointer-events:none}
+.qr-pop{clip-path:inset(0 0 40% 0);filter:drop-shadow(0 3px 3px #3a1a0a55)}
+.qr-offer[hidden]{display:none}
 .qr-offer{margin:0;display:flex;flex-direction:column;gap:2px;color:var(--muted)}
 .qr-offer strong{font-family:var(--display);font-weight:600;font-size:1.25rem;color:#fff;background:var(--lav);border-radius:999px;padding:6px 16px;margin-bottom:6px}
 .qr-link{margin:0;display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted);max-width:100%}
@@ -197,3 +205,30 @@ select{background:var(--night-2);border:1px solid var(--line);border-radius:12px
 .badge.gold{background:var(--sun);color:var(--night)}
 .badge.bear{background:#e5484d;color:#fff}
 .badge.ok{background:#1d2d22;color:var(--leaf)}
+.rank-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.rank-list li{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.rank-list li:first-child{border-top:0}
+.rank-list .rk{font-family:var(--display);font-weight:700;font-size:1.05rem;min-width:2.2em;text-align:center;color:var(--muted)}
+.rank-list li.exact .rk{color:var(--sun)}
+.rank-list .nm2{font-weight:800}
+.rank-list .gs{color:var(--muted);font-size:.84rem}
+.rank-list .gs b{color:var(--ink)}
+.rank-list .acts{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px}
+.rank-list .btn{padding:6px 11px;font-size:.8rem}
+.winner a{color:var(--sky)}
+/* Balance des pronostics */
+.rank-list .scale-chips{display:block;padding-bottom:10px}
+.rank-list li.lvl{grid-template-columns:5.6em 1fr;gap:10px;align-items:start}
+.lvl .wt{display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
+.lvl .wt b{font-family:var(--display);font-weight:600;font-size:1rem}
+.lvl .wt small{color:var(--muted);font-size:.74rem}
+.lvl.up .wt small{color:#ff9eb5}
+.lvl.down .wt small{color:#9aa6ff}
+.lvl .ppl{display:flex;flex-wrap:wrap;gap:6px}
+.lvl .pp{display:inline-flex;align-items:center;gap:4px;background:var(--night-3);border:1px solid var(--line);border-radius:999px;padding:3px 4px 3px 10px;font-size:.84rem;font-weight:700}
+.lvl .pp.won-c{border-color:var(--sun);background:#3a3320}
+.lvl .pp.won-p{border-color:#e5484d;background:#3a2025}
+.btn.sm{padding:3px 7px;font-size:.85rem;line-height:1.2}
+.rank-list li.center{grid-template-columns:1fr;background:linear-gradient(90deg,#3a3320,#2a1a1f);border:1px solid var(--sun);border-radius:14px;padding:12px;margin:6px 0}
+.center .bear-w{font-family:var(--display);font-size:1.1rem}
+.center .bear-w b{color:var(--sun)}
