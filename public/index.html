@@ -38,7 +38,7 @@
   <header class="head">
     <img class="head-logo" src="/img/logo.webp" alt="PandaSmile" width="900" height="279">
     <nav class="tabs" id="tabs" role="tablist"></nav>
-    <div class="cat" id="cat" role="radiogroup" aria-label="Catégorie" hidden><button type="button" data-v="jo" title="Journée de l’orthodontie">JO</button><button type="button" data-v="webi" title="Webinaire">Webi</button></div>
+    <div class="cat" id="cat" role="radiogroup" aria-label="Catégorie" hidden><button type="button" data-v="jo" title="Journée de l’orthodontie">JO</button><button type="button" data-v="webi" title="Webinaire">Webi</button><button type="button" data-v="noel" title="Jeu concours de Noël">Noël</button></div>
     <span class="me"><b id="me-name"></b><button type="button" id="logout" class="out">Quitter</button></span>
   </header>
   <div class="panes" id="panes">
@@ -84,6 +84,30 @@
           </div>
           <article class="block"><h2>Sujets proposés pour le prochain webinaire</h2><ul class="feed" id="w-topics"></ul></article>
           <article class="block"><h2>Messages pour le Dr Setbon</h2><ul class="feed" id="w-msgs"></ul></article>
+        </div>
+        <div id="noel-stats" hidden>
+          <div class="kpis" id="n-kpis"></div>
+          <article class="block draw">
+            <h2>Tirage au sort</h2>
+            <p class="note" id="n-mail"></p>
+            <div class="draw-row">
+              <label class="lbl" for="n-weight">Poids réel du nounours (g)</label>
+              <div class="inline"><input id="n-weight" type="number" inputmode="numeric" min="1" max="20000" step="1" placeholder="ex. 1450"><button type="button" class="mini" id="n-weight-save">Enregistrer</button></div>
+              <p class="note" id="n-weight-info"></p>
+            </div>
+            <div class="winner" id="n-casque"></div>
+            <div class="winner" id="n-peluche"></div>
+            <p class="err" id="n-err" role="alert"></p>
+            <details class="hist"><summary>Historique du tirage</summary><ul class="feed" id="n-hist"></ul></details>
+          </article>
+          <button type="button" class="cta ghost" id="n-see">Voir les réponses</button>
+          <article class="block"><h2>Entonnoir</h2><div id="n-funnel" class="funnel"></div></article>
+          <article class="block"><h2>Pronostics</h2><div class="chart-box"><canvas id="n-chart" aria-label="Nombre de pronostics par poids"></canvas></div><p class="empty" id="n-chart-empty" hidden>Pas encore de participation.</p></article>
+          <div class="duo">
+            <article class="block"><h2>Participations par jour</h2><div id="n-day" class="bars"></div></article>
+            <article class="block"><h2>Téléphones</h2><div id="n-os" class="bars"></div></article>
+          </div>
+          <article class="block"><h2>Dernières participations</h2><ul class="feed" id="n-feed"></ul></article>
         </div>
         <div id="jo-stats">
         <div class="kpis" id="kpis"></div>

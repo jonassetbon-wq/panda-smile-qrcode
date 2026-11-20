@@ -171,3 +171,29 @@ select{background:var(--night-2);border:1px solid var(--line);border-radius:12px
 .stars-s{color:#ffd166;letter-spacing:1px}
 .lead .quote{font-style:italic}
 .sec-title{font-family:var(--display);font-weight:600;font-size:1rem;margin:18px 4px 6px;color:var(--muted)}
+
+/* Jeu de Noël : tirage au sort et gagnants */
+.cat button[data-v="noel"].on{background:#e5484d;color:#fff}
+.draw{border-color:#5a3a2a;background:linear-gradient(180deg,#2a1a1f,var(--night-2))}
+.draw-row{display:flex;flex-direction:column;gap:6px}
+.inline{display:flex;gap:8px}
+.inline input{flex:1;min-width:0;background:var(--night-3);border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:1rem;font-variant-numeric:tabular-nums}
+.inline input:focus{border-color:var(--sun);outline:none}
+.winner{background:var(--night-3);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.winner h3{margin:0;font-family:var(--display);font-weight:600;font-size:1rem;display:flex;gap:8px;align-items:center}
+.winner .who{font-size:1.1rem;font-weight:800}
+.winner .meta{color:var(--muted);font-size:.84rem}
+.winner .acts{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:0;border-radius:999px;padding:9px 14px;font-weight:800;font-size:.86rem;cursor:pointer;background:var(--leaf);color:var(--night)}
+.btn.red{background:#e5484d;color:#fff}
+.btn.line{background:none;border:1px solid var(--line);color:var(--muted)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.armed{background:var(--sun);color:var(--night)}
+.sent{color:var(--leaf);font-weight:800;font-size:.86rem}
+.hist summary{cursor:pointer;color:var(--muted);font-size:.84rem}
+.cta.ghost{background:var(--night-3);color:var(--ink);box-shadow:none;border:1px solid var(--line);font-size:1rem;padding:12px 18px}
+.pick{margin:0 14px 10px}
+.lead .badge{display:inline-block;font-size:.7rem;font-weight:800;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:1px}
+.badge.gold{background:var(--sun);color:var(--night)}
+.badge.bear{background:#e5484d;color:#fff}
+.badge.ok{background:#1d2d22;color:var(--leaf)}

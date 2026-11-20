@@ -15,7 +15,7 @@ const FIELD_NAMES = { prenom: 'Prénom', nom: 'Nom', profession: 'Profession', c
 let session = null;
 /* Catégorie affichée dans l'admin : journée de l'orthodontie (JO) ou webinaire (Webi). */
 let CAT = 'jo';
-try { CAT = localStorage.getItem('ps-cat') === 'webi' ? 'webi' : 'jo'; } catch {}
+try { const c = localStorage.getItem('ps-cat'); CAT = c === 'webi' || c === 'noel' ? c : 'jo'; } catch {}
 const W_COLORS = { ...PROF_COLORS, 'Kinésithérapeute maxillo-facial': '#c49bff' };
 try { session = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
 
@@ -77,11 +77,12 @@ function setCat(c, quiet) {
   CAT = c;
   try { localStorage.setItem('ps-cat', c); } catch {}
   document.querySelectorAll('#cat button').forEach((b) => { b.classList.toggle('on', b.dataset.v === c); b.setAttribute('aria-checked', String(b.dataset.v === c)); });
-  const w = c === 'webi';
-  $('#webi-stats').hidden = !w; $('#jo-stats').hidden = w; $('#jo-selects').hidden = w;
-  $('#q').placeholder = w ? 'Rechercher un nom, une profession, une ville…' : 'Rechercher un nom, un cabinet, une ville…';
-  $('#reset-note').textContent = w ? 'Efface toutes les réponses au questionnaire du webinaire. Les stats de la journée de l’orthodontie ne changent pas.' : 'Efface tous les scans et tous les inscrits de la journée de l’orthodontie (par exemple après les essais). Le webinaire et les codes des ambassadeurs ne changent pas.';
-  $('#export').textContent = w ? 'Exporter le webinaire en Excel' : 'Exporter tout en Excel';
+  const w = c === 'webi', n = c === 'noel';
+  $('#webi-stats').hidden = !w; $('#noel-stats').hidden = !n; $('#jo-stats').hidden = w || n; $('#jo-selects').hidden = w || n;
+  $('#q').placeholder = n ? 'Rechercher un nom, un e-mail, un téléphone…' : w ? 'Rechercher un nom, une profession, une ville…' : 'Rechercher un nom, un cabinet, une ville…';
+  $('#reset-note').textContent = n ? 'Efface toutes les participations au jeu de Noël, le poids réel et les gagnants. Le webinaire et la journée de l’orthodontie ne changent pas.' : w ? 'Efface toutes les réponses au questionnaire du webinaire. Les stats de la journée de l’orthodontie ne changent pas.' : 'Efface tous les scans et tous les inscrits de la journée de l’orthodontie (par exemple après les essais). Le webinaire et les codes des ambassadeurs ne changent pas.';
+  $('#sort option[value=dept]').textContent = n ? 'Pronostic' : 'Département';
+  $('#export').textContent = n ? 'Exporter le jeu de Noël en Excel' : w ? 'Exporter le webinaire en Excel' : 'Exporter tout en Excel';
   mapFitted = false;
   if (!quiet) render();
 }
@@ -195,6 +196,7 @@ let chart;
 function render() {
   if (!DATA) return;
   if (CAT === 'webi') { renderWebi(); renderLeads(); renderMap(); return; }
+  if (CAT === 'noel') { renderNoel(); renderLeads(); renderMap(); return; }
   const { scans, events, leads } = filtered();
   const uniq = new Set(scans.map((s) => s.vid)).size;
   const starts = new Set(events.filter((e) => e.type === 'start').map((e) => e.s || e.id)).size;
@@ -299,6 +301,7 @@ $('#sort').addEventListener('change', renderLeads);
 function renderLeads() {
   if (!DATA) return;
   if (CAT === 'webi') return renderWebiLeads();
+  if (CAT === 'noel') return renderNoelLeads();
   const q = $('#q').value.trim().toLowerCase();
   let rows = filtered().leads.filter((l) => !q || [l.prenom, l.nom, l.cabinet, l.adresse, l.email, l.tel, l.geo?.city, l.profession, nameOf(l.a)].join(' ').toLowerCase().includes(q));
   const s = $('#sort').value;
@@ -320,6 +323,16 @@ async function adminPost(body) {
   return r.ok;
 }
 $('#leads').addEventListener('click', async (e) => {
+  const pk = e.target.closest('.pick-noel');
+  if (pk) { if (!armed(pk, 'Appuie encore pour confirmer')) return; pk.disabled = true; await noelAction({ action: 'pick', id: pk.dataset.id }); return; }
+  const nb = e.target.closest('.del-noel');
+  if (nb) {
+    if (!armed(nb, 'Appuie encore pour supprimer définitivement')) return;
+    nb.disabled = true; nb.textContent = 'Suppression…';
+    if (await adminPost({ noelId: nb.dataset.id, t: nb.dataset.t })) { DATA.noel = DATA.noel.filter((x) => x.id !== nb.dataset.id); render(); load(); }
+    else { nb.disabled = false; nb.textContent = 'Échec, réessaie'; }
+    return;
+  }
   const wb = e.target.closest('.del-webi');
   if (wb) {
     if (!armed(wb, 'Appuie encore pour supprimer définitivement')) return;
@@ -370,6 +383,7 @@ function renderMap(fit) {
   if (!map || !DATA) return;
   setTimeout(() => map.invalidateSize(), 50);
   layer.clearLayers();
+  if (CAT === 'noel') { $('#legend').innerHTML = '<b>Jeu de Noël</b><small>Pas de carte : le jeu ne demande pas d’adresse.</small>'; return; }
   const leads = mapItems().filter((l) => l.geo?.lat);
   const COL = CAT === 'webi' ? W_COLORS : PROF_COLORS;
   const z = map.getZoom();
@@ -424,6 +438,7 @@ function renderMap(fit) {
 $('#export').addEventListener('click', () => {
   if (!DATA || !window.XLSX) return;
   if (CAT === 'webi') return exportWebi();
+  if (CAT === 'noel') return exportNoel();
   const { scans, events, leads } = filtered();
   const wb = XLSX.utils.book_new();
   const add = (name, rows, widths) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Aucune donnée' }]); if (rows.length) ws['!autofilter'] = { ref: ws['!ref'] }; if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
@@ -452,6 +467,7 @@ function webiFiltered() {
   return { answers: (DATA.webi || []).filter(inP).sort((a, b) => b.t.localeCompare(a.t)), events: (DATA.webiEvents || []).filter(inP) };
 }
 function mapItems() {
+  if (CAT === 'noel') return [];
   if (CAT !== 'webi') return filtered().leads;
   return webiFiltered().answers.map((r) => ({ prenom: r.name, nom: '', profession: r.profession, cabinet: '', geo: r.geo, adresse: r.postcode, a: '', src: 'Webinaire · note ' + r.rating + '/5' }));
 }
@@ -514,6 +530,142 @@ function exportWebi() {
   ], [22, 36, 9]);
   const stamp = new Date().toLocaleString('fr-FR', { timeZone: TZ }).replace(/[/:]/g, '-').replace(/\s/g, '_');
   XLSX.writeFile(wb, `PandaSmile_webinaire_${stamp}.xlsx`);
+}
+
+
+/* ---------- Jeu de Noël ---------- */
+const gfmt = (g) => (g == null ? '–' : g < 1000 ? `${g} g` : `${(g / 1000).toLocaleString('fr-FR', { minimumFractionDigits: g % 1000 ? 1 : 0, maximumFractionDigits: 3 })} kg`);
+function noelAll() { return (DATA.noel || []).slice().sort((a, b) => b.t.localeCompare(a.t)); }
+function noelFiltered() {
+  const from = since();
+  const inP = (x) => Date.parse(x.t) >= from;
+  return { parts: noelAll().filter(inP), events: (DATA.noelEvents || []).filter(inP) };
+}
+const NST = () => DATA.noelState || { realWeight: null, casque: null, peluche: null, history: [] };
+const partById = (id) => (DATA.noel || []).find((x) => x.id === id);
+let nChart;
+function renderNoel() {
+  const { parts, events } = noelFiltered();
+  const st = NST();
+  const sess = (t) => new Set(events.filter((e) => e.type === t).map((e) => e.s || e.id)).size;
+  const guesses = parts.map((r) => r.guess).sort((a, b) => a - b);
+  const med = guesses.length ? guesses[Math.floor((guesses.length - 1) / 2)] : null;
+  const target = st.realWeight ? Math.round(st.realWeight / 100) * 100 : null;
+  const good = target ? noelAll().filter((r) => r.guess === target).length : null;
+  $('#n-kpis').innerHTML = [
+    [parts.length, 'Participations', 'hl'],
+    [sess('view'), 'Pages ouvertes'],
+    [pct(parts.length, sess('view')) + ' %', 'Conversion (participations / pages)'],
+    [gfmt(med), 'Pronostic médian'],
+    [st.realWeight ? gfmt(st.realWeight) : '?', 'Poids réel'],
+    [good == null ? '–' : good, 'Bonnes réponses (tout le jeu)'],
+  ].map(([v, l, c]) => `<div class="kpi ${c || ''}"><b>${v}</b><span>${l}</span></div>`).join('');
+  const steps = [['Page ouverte', sess('view')], ['Formulaire atteint', sess('form')], ['Formulaire commencé', sess('start')], ['Participation envoyée', parts.length]];
+  const top = Math.max(1, ...steps.map((x) => x[1]));
+  $('#n-funnel').innerHTML = steps.map(([l, v], i) => `<div class="fstep"><span>${l}</span><span class="t"><i style="width:${Math.max(2, (v / top) * 100)}%"></i></span><span class="v">${v}${i && steps[i - 1][1] ? ` <small>${pct(v, steps[i - 1][1])} %</small>` : ''}</span></div>`).join('');
+  renderNoelChart(parts, target);
+  bars('#n-day', count(parts, (r) => new Date(r.t).toLocaleDateString('fr-FR', { timeZone: TZ, weekday: 'short', day: '2-digit', month: '2-digit' })), null, 10, 'Pas encore de participation.');
+  bars('#n-os', count(parts, (r) => r.os || 'Autre'), null, 6, 'Pas encore de participation.');
+  $('#n-feed').innerHTML = parts.length ? parts.slice(0, 15).map((r) => `<li><time>${hhmm(r.t)}</time><span><b>${esc(r.prenom)} ${esc(r.nom)}</b> · ${gfmt(r.guess)}</span>${target && r.guess === target ? '<span class="tag ok">Bonne réponse</span>' : ''}</li>`).join('') : '<li class="muted">Aucune participation sur cette période.</li>';
+  renderDraw();
+}
+function renderNoelChart(parts, target) {
+  const box = $('#n-chart'), empty = $('#n-chart-empty');
+  if (!window.Chart) { setTimeout(() => renderNoelChart(parts, target), 300); return; }
+  if (!parts.length) { box.parentElement.hidden = true; empty.hidden = false; return; }
+  box.parentElement.hidden = false; empty.hidden = true;
+  const keys = []; for (let g = 100; g <= 3000; g += 100) keys.push(g);
+  const data = keys.map((g) => parts.filter((r) => r.guess === g).length);
+  const cfg = {
+    type: 'bar',
+    data: { labels: keys.map(gfmt), datasets: [{ label: 'Pronostics', data, backgroundColor: keys.map((g) => (g === target ? '#ffd166' : '#e5484d')), borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { title: (it) => it[0].label + (keys[it[0].dataIndex] === target ? ' · poids réel' : '') } } },
+      scales: { x: { ticks: { color: '#a6b0c8', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { display: false } }, y: { beginAtZero: true, ticks: { color: '#a6b0c8', precision: 0 }, grid: { color: '#2a345466' } } },
+    },
+  };
+  if (nChart) { nChart.data = cfg.data; nChart.options = cfg.options; nChart.update('none'); } else nChart = new Chart(box, cfg);
+}
+function winnerCard(kind) {
+  const st = NST(); const w = st[kind]; const r = w && partById(w.id);
+  const title = kind === 'casque' ? '🎧 Casque JBL Tune 680NC' : '🧸 Le nounours';
+  if (!w) {
+    if (kind === 'casque') return `<h3>${title}</h3><p class="meta">${st.realWeight ? 'Tirage au sort parmi les bonnes réponses (ou, s’il n’y en a aucune, parmi les pronostics les plus proches).' : 'Enregistre d’abord le poids réel du nounours.'}</p><div class="acts"><button type="button" class="btn red" data-act="draw" ${st.realWeight ? '' : 'disabled'}>Tirer au sort le gagnant</button></div>`;
+    return `<h3>${title}</h3><p class="meta">Choisis le gagnant dans l’onglet Inscrits : bouton « Donner le nounours » sous chaque participant.</p><div class="acts"><button type="button" class="btn line" data-act="see">Voir les réponses</button></div>`;
+  }
+  const who = r ? `${esc(r.prenom)} ${esc(r.nom)}` : 'Participant supprimé';
+  const meta = r ? `${esc(r.email)} · ${esc(r.tel)} · pronostic ${gfmt(r.guess)}` : '';
+  const how = kind === 'casque' ? `<p class="meta">Tiré au sort le ${frDate(w.at)} parmi ${w.poolSize} ${w.poolKind === 'exact' ? `bonne${w.poolSize > 1 ? 's' : ''} réponse${w.poolSize > 1 ? 's' : ''}` : `pronostic${w.poolSize > 1 ? 's' : ''} le${w.poolSize > 1 ? 's' : ''} plus proche${w.poolSize > 1 ? 's' : ''} (aucune réponse exacte)`}.</p>` : `<p class="meta">Choisi le ${frDate(w.at)}.</p>`;
+  const acts = w.notifiedAt
+    ? `<span class="sent">✓ E-mail envoyé le ${frDate(w.notifiedAt)}</span>`
+    : `<button type="button" class="btn" data-act="notify" data-kind="${kind}" ${DATA.mailReady && r ? '' : 'disabled'}>Envoyer l’e-mail au gagnant</button>${kind === 'casque' ? '<button type="button" class="btn line" data-act="draw">Refaire le tirage</button>' : ''}<button type="button" class="btn line" data-act="clear" data-kind="${kind}">Annuler</button>`;
+  return `<h3>${title}</h3><span class="who">${who}</span><span class="meta">${meta}</span>${how}<div class="acts">${acts}</div>`;
+}
+function renderDraw() {
+  const st = NST();
+  $('#n-mail').innerHTML = DATA.mailReady ? '✓ E-mails activés : chaque participant reçoit une confirmation, et les gagnants reçoivent leur e-mail quand tu appuies sur « Envoyer ».' : '⚠️ E-mails pas encore activés (clé Resend absente). Les participations sont bien enregistrées, mais aucun e-mail ne part.';
+  const inp = $('#n-weight'); if (document.activeElement !== inp) inp.value = st.realWeight || '';
+  $('#n-weight-info').textContent = st.realWeight ? `Bonne réponse = ${gfmt(Math.round(st.realWeight / 100) * 100)} (poids réel arrondi à 100 g).` : 'À peser à la fin du jeu. Le pronostic gagnant est le poids réel arrondi à 100 g.';
+  $('#n-casque').innerHTML = winnerCard('casque');
+  $('#n-peluche').innerHTML = winnerCard('peluche');
+  const h = (st.history || []).slice().reverse();
+  $('#n-hist').innerHTML = h.length ? h.map((x) => `<li><time>${frDate(x.t)}</time><span>${esc(x.what)}</span></li>`).join('') : '<li class="muted">Rien pour l’instant.</li>';
+}
+async function noelAction(body) {
+  $('#n-err').textContent = '';
+  try {
+    const r = await fetch('/api/admin/noel', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.token }, body: JSON.stringify(body) });
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 401) { $('#logout').click(); return false; }
+    if (!r.ok) { $('#n-err').textContent = d.error || 'Échec, réessaie.'; render(); return false; }
+    DATA.noelState = d.state; render(); return true;
+  } catch { $('#n-err').textContent = 'Pas de connexion internet.'; return false; }
+}
+$('#n-weight-save').addEventListener('click', () => noelAction({ action: 'weight', grams: Number($('#n-weight').value) }));
+function goLeads() { const i = tabs.findIndex(([id]) => id === 'pane-leads'); if (i >= 0) panes.scrollTo({ left: i * panes.clientWidth, behavior: 'smooth' }); }
+$('#n-see').addEventListener('click', goLeads);
+$('#noel-stats').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+  const act = b.dataset.act;
+  if (act === 'see') return goLeads();
+  if (act === 'draw') { if (!armed(b, NST().casque ? 'Appuie encore : nouveau tirage' : 'Appuie encore pour tirer au sort')) return; }
+  if (act === 'notify') { if (!armed(b, 'Appuie encore : l’e-mail part')) return; }
+  if (act === 'clear') { if (!armed(b, 'Appuie encore pour annuler')) return; }
+  b.disabled = true;
+  await noelAction({ action: act, kind: b.dataset.kind });
+});
+function renderNoelLeads() {
+  const q = $('#q').value.trim().toLowerCase();
+  const st = NST();
+  const target = st.realWeight ? Math.round(st.realWeight / 100) * 100 : null;
+  let rows = noelFiltered().parts.filter((r) => !q || [r.prenom, r.nom, r.email, r.tel, gfmt(r.guess)].join(' ').toLowerCase().includes(q));
+  const s = $('#sort').value;
+  rows.sort(s === 'old' ? (a, b) => a.t.localeCompare(b.t) : s === 'name' ? (a, b) => a.nom.localeCompare(b.nom, 'fr') : s === 'dept' ? (a, b) => a.guess - b.guess : (a, b) => b.t.localeCompare(a.t));
+  $('#leads-count').textContent = `${rows.length} participation${rows.length > 1 ? 's' : ''} au jeu de Noël${F.period !== 'all' ? ' sur la période' : ''}`;
+  const dd = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
+  $('#leads').innerHTML = rows.length ? rows.map((r) => {
+    const isC = st.casque?.id === r.id, isP = st.peluche?.id === r.id;
+    const badges = (isC ? '<span class="badge gold">Casque</span>' : '') + (isP ? '<span class="badge bear">Nounours</span>' : '') + (target && r.guess === target ? '<span class="badge ok">Bonne réponse</span>' : '');
+    const canPick = !isC && !isP && !st.peluche?.notifiedAt;
+    return `<li><details class="lead"><summary><span class="pdot" style="background:${target && r.guess === target ? '#ffd166' : '#e5484d'}"></span><span class="nm">${esc(r.prenom)} ${esc(r.nom)}${badges}</span><span class="when">${frDate(r.t)}</span><span class="sub">Pronostic <b>${gfmt(r.guess)}</b>${st.realWeight ? ` · écart ${gfmt(Math.abs(r.guess - st.realWeight))}` : ''}</span></summary>
+    <dl>${dd('E-mail', r.email)}${dd('Téléphone', r.tel)}${dd('Pronostic', gfmt(r.guess))}${dd('E-mail de confirmation', r.mail ? (r.mail.ok ? 'Envoyé' : 'Non envoyé : ' + r.mail.error) : '')}${dd('Téléphone utilisé', [r.device, r.os].filter(Boolean).join(' · '))}${dd('Rempli en', Number.isFinite(r.durationSec) ? r.durationSec + ' s' : '')}</dl>
+    ${canPick ? `<button type="button" class="btn red pick pick-noel" data-id="${esc(r.id)}">🧸 Donner le nounours</button>` : ''}
+    <button type="button" class="del del-noel" data-id="${esc(r.id)}" data-t="${esc(r.t)}">Supprimer cette participation</button></details></li>`;
+  }).join('') : '<li class="muted">Aucune participation pour l’instant.</li>';
+}
+function exportNoel() {
+  const { parts } = noelFiltered();
+  const st = NST();
+  const wb = XLSX.utils.book_new();
+  const add = (name, rows, widths) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Aucune donnée' }]); if (rows.length) ws['!autofilter'] = { ref: ws['!ref'] }; if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
+  const dt = (t) => new Date(t).toLocaleString('fr-FR', { timeZone: TZ });
+  add('Participations', parts.map((r) => ({ 'Date et heure': dt(r.t), Prénom: r.prenom, Nom: r.nom, 'E-mail': r.email, Téléphone: r.tel, 'Pronostic (g)': r.guess, 'Écart (g)': st.realWeight ? Math.abs(r.guess - st.realWeight) : '', Gagnant: st.casque?.id === r.id ? 'Casque' : st.peluche?.id === r.id ? 'Nounours' : '', 'E-mail de confirmation': r.mail ? (r.mail.ok ? 'Envoyé' : 'Non envoyé') : '', 'Rempli en (s)': r.durationSec ?? '' })), [18, 14, 16, 28, 15, 12, 10, 10, 14, 10]);
+  const by = []; for (let g = 100; g <= 3000; g += 100) by.push({ Pronostic: gfmt(g), 'Grammes': g, Nombre: parts.filter((r) => r.guess === g).length });
+  add('Par poids', by, [12, 10, 9]);
+  add('Tirage', (st.history || []).map((h) => ({ 'Date et heure': dt(h.t), Action: h.what })), [18, 70]);
+  const stamp = new Date().toLocaleString('fr-FR', { timeZone: TZ }).replace(/[/:]/g, '-').replace(/\s/g, '_');
+  XLSX.writeFile(wb, `PandaSmile_jeu_noel_${stamp}.xlsx`);
 }
 
 /* ---------- Démarrage ---------- */

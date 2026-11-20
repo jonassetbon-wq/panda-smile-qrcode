@@ -4,7 +4,7 @@ import { store, RETENTION_DAYS } from "./lib/common.mjs";
 export default async () => {
   const limit = new Date(Date.now() - RETENTION_DAYS * 24 * 3600 * 1000).toISOString().replace(/[:.]/g, "-");
   let removed = 0;
-  for (const name of ["leads", "scans", "events", "logins", "webi", "webievents"]) {
+  for (const name of ["leads", "scans", "events", "logins", "webi", "webievents", "noel", "noelevents"]) {
     const s = store(name);
     const { blobs } = await s.list();
     for (const b of blobs) {
@@ -12,7 +12,7 @@ export default async () => {
     }
   }
   // Index anti-doublon : on retire les entrées qui pointent vers des inscrits effacés.
-  for (const name of ["leadidx", "webiidx"]) {
+  for (const name of ["leadidx", "webiidx", "noelidx"]) {
     const s = store(name);
     const { blobs } = await s.list();
     for (const b of blobs) { const k = await s.get(b.key); if (k && k.slice(0, limit.length) < limit) { await s.delete(b.key); removed++; } }
