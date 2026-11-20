@@ -29,8 +29,8 @@ button,input,select{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 
 /* ---------- Ouverture : l'affiche, puis le nounours qui s'envole ---------- */
-.intro{position:relative;height:240svh}
-.stage{position:sticky;top:0;height:100svh;overflow:hidden}
+.intro{position:relative;height:280svh}
+.stage{position:sticky;top:0;height:100svh;overflow:hidden;z-index:1}
 .flakes{position:absolute;inset:0;pointer-events:none;
   background-image:
     radial-gradient(2px 2px at 8% 12%,#fff8 50%,transparent 51%),radial-gradient(1.5px 1.5px at 22% 70%,#fff6 50%,transparent 51%),
@@ -127,7 +127,7 @@ details.rules li{margin-bottom:6px}
   </div>
 </section>
 
-<section class="jeu" id="jouer">
+<section class="jeu" id="jouer"><!-- remonte par-dessus le nounours : seules ses oreilles dépassent -->
   <div class="card">
     <div id="play">
       <span class="kicker">✦ Jeu concours gratuit</span>
@@ -195,7 +195,8 @@ details.rules li{margin-bottom:6px}
   for (let g = 100; g <= 3000; g += 100) sel.insertAdjacentHTML('beforeend', `<option value="${g}">${fmt(g)}</option>`);
 
   /* ---------- Animation au défilement ---------- */
-  const intro = $('#intro'), stage = $('#stage'), poster = $('#poster'), flyer = $('#flyer'), hint = $('#hint');
+  const jeu = $('#jouer'), intro = $('#intro'), stage = $('#stage'), poster = $('#poster'), flyer = $('#flyer'), hint = $('#hint');
+  const EARS = .15; // part du nounours (depuis le haut) qui reste visible au-dessus du formulaire
   const BEAR = { x: 388.5 / 794, y: 35.5 / 1123, w: 379 / 794, h: 522 / 1123 }; // position du nounours dans l'affiche
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -212,6 +213,14 @@ details.rules li{margin-bottom:6px}
     poster.style.width = W + 'px'; poster.style.height = H + 'px';
     poster.style.left = L + 'px'; poster.style.top = T + 'px';
     flyer.style.width = BEAR.w * W + 'px'; flyer.style.height = BEAR.h * W * 1.41436 + 'px';
+    // Le formulaire chevauche la fin de l'intro : à la fin du défilement, son bord haut
+    // s'arrête juste sous les oreilles du nounours, qui reste dessous.
+    if (!reduce) {
+      const bh = BEAR.h * H, s = Math.min(vh * .7 / bh, vw * .92 / (BEAR.w * W), 2.6);
+      const ears = vh * .48 - (bh * s) / 2 + bh * s * EARS;
+      const span = intro.offsetHeight - vh, pad = parseFloat(getComputedStyle(jeu).paddingTop);
+      jeu.style.marginTop = (ears + span - intro.offsetHeight - pad) + 'px';
+    }
     frame();
   }
   function frame() {
@@ -228,14 +237,9 @@ details.rules li{margin-bottom:6px}
     const target = Math.min(vh * .7 / bh, vw * .92 / bw, 2.6);
     const m = ease(clamp((p - .04) / .5));
     let s = lerp(1, target, m);
-    // 3. Il grossit encore, se ternit puis disparaît.
-    const f = clamp((p - .56) / .32);
-    s *= 1 + f * .45;
+    // 3. Il reste au centre ; le formulaire monte par-dessus et le recouvre (z-index).
     const cx = lerp(x0 + bw / 2, vw / 2, m), cy = lerp(y0 + bh / 2, vh * .48, m);
     flyer.style.transform = `translate3d(${cx - (bw * s) / 2}px,${cy - (bh * s) / 2}px,0) scale(${s})`;
-    flyer.style.opacity = String(1 - ease(f));
-    flyer.style.filter = f > 0 ? `saturate(${1 - f}) brightness(${1 + f * .35}) blur(${f * 8}px)` : 'none';
-    flyer.style.visibility = f >= 1 ? 'hidden' : 'visible';
     hint.style.opacity = String(1 - clamp(p / .08));
     hint.style.pointerEvents = p > .05 ? 'none' : '';
   }
