@@ -29,20 +29,21 @@ button,input,select{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 
 /* ---------- Ouverture : l'affiche, puis le nounours qui s'envole ---------- */
-.intro{position:relative;height:200svh}
-.stage{position:sticky;top:0;height:100svh;overflow:hidden;z-index:1}
+.intro{position:relative;z-index:1}
+.stage{position:relative}
+.vhprobe{position:absolute;top:0;left:0;width:1px;height:100svh;visibility:hidden;pointer-events:none}
 .flakes{position:absolute;inset:0;pointer-events:none;
   background-image:
     radial-gradient(2px 2px at 8% 12%,#fff8 50%,transparent 51%),radial-gradient(1.5px 1.5px at 22% 70%,#fff6 50%,transparent 51%),
     radial-gradient(2px 2px at 88% 20%,#fff7 50%,transparent 51%),radial-gradient(1.5px 1.5px at 70% 86%,#fff6 50%,transparent 51%),
     radial-gradient(1.5px 1.5px at 50% 40%,#fff5 50%,transparent 51%),radial-gradient(2px 2px at 95% 60%,#fff6 50%,transparent 51%),
     radial-gradient(1.5px 1.5px at 4% 48%,#fff6 50%,transparent 51%),radial-gradient(1.5px 1.5px at 35% 94%,#fff5 50%,transparent 51%)}
-.poster{position:absolute;left:50%;top:0;transform-origin:50% 0;will-change:transform;
+.poster{position:relative;margin:0 auto;
   box-shadow:0 30px 60px rgba(0,0,0,.45);border-radius:0 0 6px 6px;overflow:hidden;background:var(--cream)}
 .poster img{display:block;width:100%;height:100%}
-.flyer{position:absolute;left:0;top:0;transform-origin:50% 50%;will-change:transform,filter,opacity;pointer-events:none;z-index:3}
+.flyer{position:absolute;left:0;top:0;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden;pointer-events:none;z-index:3}
 .flyer img{display:block;width:100%;height:100%}
-.hint{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:4;
+.hint{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:4;
   display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--cream);font-weight:700;font-size:.95rem;letter-spacing:.02em;text-align:center;white-space:nowrap;text-decoration:none;
   text-shadow:0 2px 10px rgba(0,0,0,.5);transition:opacity .3s}
 .hint span{display:inline-flex;align-items:center;gap:8px;background:var(--red);border:2px solid var(--gold);border-radius:999px;padding:9px 18px;box-shadow:0 8px 20px rgba(0,0,0,.35)}
@@ -106,8 +107,7 @@ details.rules li{margin-bottom:6px}
 #snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20}
 @media (prefers-reduced-motion:reduce){
   #snow{display:none}
-  .intro{height:auto}.stage{position:relative;height:auto;padding:16px 0 0}
-  .poster{position:relative;left:auto;margin:0 auto;transform:none!important}
+  .stage{padding:16px 0 0}
   .flyer,.hint{display:none}
   .hint i{animation:none}
 }
@@ -118,7 +118,7 @@ details.rules li{margin-bottom:6px}
 <canvas id="snow" aria-hidden="true"></canvas>
 <section class="intro" id="intro" aria-label="Affiche du jeu">
   <div class="stage" id="stage">
-    <div class="flakes"></div>
+    <div class="flakes"></div><div class="vhprobe" id="vhprobe"></div>
     <div class="poster" id="poster" role="img" aria-label="Affiche : Combien pèse le nounours ? Jeu concours gratuit du cabinet d'orthodontie. 1er prix : casque JBL Tune 680NC. 2e prix : le nounours.">
       <img src="/noel/img/affiche.webp" alt="" width="1588" height="2246" fetchpriority="high">
     </div>
@@ -194,8 +194,11 @@ details.rules li{margin-bottom:6px}
   const sel = $('#guess');
   for (let g = 100; g <= 3000; g += 100) sel.insertAdjacentHTML('beforeend', `<option value="${g}">${fmt(g)}</option>`);
 
-  /* ---------- Animation au défilement ---------- */
-  const jeu = $('#jouer'), intro = $('#intro'), stage = $('#stage'), poster = $('#poster'), flyer = $('#flyer'), hint = $('#hint');
+  /* ---------- Animation au défilement ----------
+     L'affiche et le formulaire défilent normalement (fluide sur téléphone). Seul le nounours est animé :
+     ses images clés sont calculées une fois, puis jouées par le navigateur au rythme du défilement
+     (ScrollTimeline, sans JavaScript à chaque image ; sinon repli sur l'événement scroll). */
+  const jeu = $('#jouer'), poster = $('#poster'), flyer = $('#flyer'), hint = $('#hint'), probe = $('#vhprobe');
   const EARS = .15; // part du nounours (depuis le haut) qui reste visible au-dessus du formulaire
   const ROT = 12;   // inclinaison finale du nounours, en degrés vers la droite
   const GAP = .3;   // écart entre le bas de l'affiche et le haut du formulaire, en hauteur d'écran
@@ -204,52 +207,61 @@ details.rules li{margin-bottom:6px}
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
   const ease = (t) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   const lerp = (a, b, t) => a + (b - a) * t;
-  let W = 0, H = 0, L = 0, T = 0, vw = 0, vh = 0;
+  const DUR = 1000, hasST = typeof ScrollTimeline === 'function';
+  let anim = null, S = 1, lastKey = '';
   function layout() {
-    vw = stage.clientWidth; vh = stage.clientHeight;
-    W = Math.min(vw - (vw > 600 ? 48 : 0), (vh - (vw > 600 ? 40 : 12)) / 1.41436, 640);
-    // Sur téléphone : l'affiche occupe toute la largeur.
-    if (vw <= 600) W = Math.min(vw, 640);
-    H = W * 1.41436;
-    L = (vw - W) / 2; T = vw > 600 ? 20 : 0;
-    poster.style.width = W + 'px'; poster.style.height = H + 'px';
-    poster.style.left = L + 'px'; poster.style.top = T + 'px';
-    flyer.style.width = BEAR.w * W + 'px'; flyer.style.height = BEAR.h * W * 1.41436 + 'px';
-    // Le formulaire suit l'affiche de près (écart GAP) et finit par recouvrir le nounours :
-    // à la fin, son bord haut s'arrête juste sous les oreilles, qui seules dépassent.
-    if (!reduce) {
-      const bh = BEAR.h * H, s = Math.min(vh * .7 / bh, vw * .92 / (BEAR.w * W), 2.6);
-      const ears = vh * .48 - (bh * s) / 2 + bh * s * EARS;
-      const span = Math.max(vh * .45, T + H + vh * GAP - ears);
-      intro.style.height = (vh + span) + 'px';
-      const pad = parseFloat(getComputedStyle(jeu).paddingTop);
-      jeu.style.marginTop = (ears - vh - pad) + 'px';
-    }
-    frame();
-  }
-  function frame() {
+    const vw = document.documentElement.clientWidth, vh = probe.offsetHeight || innerHeight;
+    let W = Math.min(vw - (vw > 600 ? 48 : 0), (vh - (vw > 600 ? 40 : 12)) / 1.41436, 640);
+    if (vw <= 600) W = Math.min(vw, 640); // sur téléphone : l'affiche occupe toute la largeur
+    const H = W * 1.41436, L = (vw - W) / 2, T = vw > 600 ? 20 : 0;
+    poster.style.width = W + 'px'; poster.style.height = H + 'px'; poster.style.marginTop = T + 'px';
     if (reduce) return;
-    const span = intro.offsetHeight - vh;
-    const p = clamp((scrollY - intro.offsetTop) / Math.max(1, span));
-    // 1. L'affiche monte au rythme du doigt, le formulaire la suit de près.
-    const ty = -p * span;
-    poster.style.transform = `translate3d(0,${ty}px,0)`;
-    // 2. Le nounours se détache, file vers le centre, grandit et pivote vers la droite (nord-est) ;
-    //    il atteint sa position finale au moment où le formulaire passe dessus.
     const bw = BEAR.w * W, bh = BEAR.h * H;
-    const x0 = L + BEAR.x * W, y0 = T + BEAR.y * H + ty;
+    flyer.style.width = bw + 'px'; flyer.style.height = bh + 'px';
     const target = Math.min(vh * .7 / bh, vw * .92 / bw, 2.6);
-    const m = ease(clamp((p - .02) / .9));
-    const s = lerp(1, target, m), r = ROT * m;
-    const cx = lerp(x0 + bw / 2, vw / 2, m), cy = lerp(y0 + bh / 2, vh * .48, m);
-    flyer.style.transform = `translate3d(${cx - bw / 2}px,${cy - bh / 2}px,0) rotate(${r}deg) scale(${s})`;
+    const ears = vh * .48 - (bh * target) / 2 + bh * target * EARS;
+    // Le formulaire suit l'affiche à GAP d'écran ; après S pixels de défilement, son bord haut
+    // arrive juste sous les oreilles du nounours, qui a fini son vol à ce moment-là.
+    const pad = parseFloat(getComputedStyle(jeu).paddingTop);
+    jeu.style.marginTop = (vh * GAP - pad) + 'px';
+    S = Math.max(vh * .3, T + H + vh * GAP - ears);
+    const max = Math.max(S + 1, document.documentElement.scrollHeight - innerHeight);
+    const key = [vw, Math.round(vh), Math.round(max)].join();
+    if (key === lastKey && anim) return;
+    lastKey = key;
+    const x0 = L + BEAR.x * W, y0 = T + BEAR.y * H;
+    const pose = (p) => {
+      const m = ease(clamp((p - .02) / .9)), sc = lerp(1, target, m);
+      // position à l'écran, puis dans la page (+ défilement) : l'élément est placé dans la page
+      const cx = lerp(x0 + bw / 2, vw / 2, m), cy = lerp(y0 - p * S + bh / 2, vh * .48, m) + p * S;
+      return `translate3d(${(cx - bw / 2).toFixed(1)}px,${(cy - bh / 2).toFixed(1)}px,0) rotate(${(ROT * m).toFixed(2)}deg) scale(${sc.toFixed(4)})`;
+    };
+    const frames = [];
+    for (let i = 0; i <= 40; i++) { const p = i / 40; frames.push({ offset: (p * S) / max, transform: pose(p) }); }
+    frames.push({ offset: 1, transform: pose(1) });
+    anim?.cancel();
+    anim = flyer.animate(frames, hasST
+      ? { duration: 'auto', fill: 'both', timeline: new ScrollTimeline({ source: document.documentElement, axis: 'block' }) }
+      : { duration: DUR, fill: 'both' });
+    if (!hasST) { anim.pause(); sync(); }
+    flyer.style.transform = pose(scrollY >= S ? 1 : 0); // repli si les animations ne tournent pas
+  }
+  function sync() {
+    const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+    if (anim && !hasST) anim.currentTime = clamp(scrollY / max) * DUR;
+  }
+  function onScroll() {
+    sync();
+    const p = scrollY / S;
     hint.style.opacity = String(1 - clamp(p / .1));
     hint.style.pointerEvents = p > .05 ? 'none' : '';
   }
-  addEventListener('resize', layout);
-  addEventListener('scroll', () => requestAnimationFrame(frame), { passive: true });
-  layout();
-  if (reduce) { poster.style.left = ''; poster.style.top = ''; }
+  let rt = 0;
+  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(layout, 120); });
+  addEventListener('scroll', onScroll, { passive: true });
+  new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(layout, 120); }).observe(jeu);
+  layout(); onScroll();
+  window.__noel = { S: () => S, scrollTimeline: hasST };
 
   /* ---------- Formulaire ---------- */
   if (Date.now() >= CLOSES) { $('#play').hidden = true; $('#closed').hidden = false; }
@@ -322,7 +334,7 @@ details.rules li{margin-bottom:6px}
   }
   function size() {
     const ow = w, old = pile;
-    dpr = Math.min(2, devicePixelRatio || 1);
+    dpr = Math.min(innerWidth <= 600 ? 1.25 : 2, devicePixelRatio || 1);
     w = innerWidth; h = innerHeight;
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const n = Math.ceil(w / COL) + 1;
