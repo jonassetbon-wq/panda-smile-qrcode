@@ -11,7 +11,7 @@ export default async (req) => {
   if (b.reset === true) {
     // Remise à zéro de la catégorie affichée : journée de l'orthodontie (par défaut) ou webinaire.
     let n = 0;
-    const names = b.cat === "webi" ? ["webi", "webiidx", "webievents"] : b.cat === "noel" ? ["noel", "noelidx", "noelevents", "noelstate"] : ["leads", "leadidx", "scans", "seen", "events"];
+    const names = b.cat === "webi" ? ["webi", "webiidx", "webievents"] : b.cat === "noel" ? ["noel", "noelidx", "noelevents", "noelstate"] : b.cat === "galette" ? ["galette", "galetteidx", "galetteevents"] : ["leads", "leadidx", "scans", "seen", "events"];
     for (const name of names) {
       const s = store(name);
       const { blobs } = await s.list();
@@ -46,6 +46,16 @@ export default async (req) => {
     const rec = await parts.get(key, { type: "json" });
     if (!rec || rec.id !== b.noelId) return json({ error: "Participation introuvable" }, 404);
     await parts.delete(key);
+    const { blobs } = await idx.list();
+    for (const x of blobs) { if ((await idx.get(x.key)) === key) await idx.delete(x.key); }
+    return json({ ok: true });
+  }
+  if (typeof b.galetteId === "string" && typeof b.t === "string") {
+    const regs = store("galette"), idx = store("galetteidx");
+    const key = keyFor(b.t, b.galetteId);
+    const rec = await regs.get(key, { type: "json" });
+    if (!rec || rec.id !== b.galetteId) return json({ error: "Inscription introuvable" }, 404);
+    await regs.delete(key);
     const { blobs } = await idx.list();
     for (const x of blobs) { if ((await idx.get(x.key)) === key) await idx.delete(x.key); }
     return json({ ok: true });

@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#efece7">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/img/icon.png">
+<title>Galette des rois · Inscription</title>
+<link rel="preload" href="/galette/img/affiche.webp" as="image">
+<link rel="stylesheet" href="/galette/fonts.css">
+<style>
+/* Même direction artistique que l'affiche : crème, rouge brique, Bodoni Moda (titres) + Montserrat (texte). */
+:root{
+  --bg:#efece7; --paper:#fbf8f4; --red:#b4474a; --red-d:#933538; --ink:#4a2324; --muted:#7d6163; --line:#e3d8d2; --err:#b4474a;
+  --display:'Bodoni Moda',Georgia,serif; --body:Montserrat,system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:var(--body);color:var(--ink);font-size:16px;line-height:1.5;background:var(--bg);min-height:100svh}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+
+/* ---------- Ouverture : l'affiche, puis le bébé qui s'envole ---------- */
+.intro{position:relative;z-index:1}
+.stage{position:relative}
+.vhprobe{position:absolute;top:0;left:0;width:1px;height:100svh;visibility:hidden;pointer-events:none}
+.poster{position:relative;margin:0 auto;overflow:hidden;background:var(--bg)}
+@media (min-width:601px){.poster{box-shadow:0 30px 60px rgba(74,35,36,.18);border-radius:4px}}
+.poster img{position:absolute;inset:0;display:block;width:100%;height:100%}
+.flyer{position:absolute;left:0;top:0;transform-origin:50% 50%;will-change:transform,opacity;backface-visibility:hidden;pointer-events:none;z-index:3;opacity:0}
+.flyer img{display:block;width:100%;height:100%}
+.hint{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:4;
+  display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:700;font-size:.92rem;letter-spacing:.02em;text-align:center;white-space:nowrap;text-decoration:none;transition:opacity .3s}
+.hint span{display:inline-flex;align-items:center;gap:8px;background:var(--red);color:#fff;border-radius:999px;padding:10px 18px;box-shadow:0 8px 20px rgba(147,53,56,.35)}
+.hint i{font-style:normal;animation:bob 1.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(5px)}}
+
+/* ---------- Formulaire ---------- */
+.jeu{position:relative;z-index:2;padding:8svh max(16px,env(safe-area-inset-left)) 40px max(16px,env(safe-area-inset-right))}
+.card{max-width:520px;margin:0 auto;background:var(--paper);border:1.5px solid rgba(180,71,74,.22);border-radius:22px;padding:28px 22px 24px;box-shadow:0 24px 60px rgba(74,35,36,.18);position:relative}
+.kicker{display:inline-flex;align-items:center;gap:8px;background:var(--red);color:#fff;font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;border-radius:999px;padding:6px 13px}
+h1{font-family:var(--display);font-weight:400;color:var(--red);font-size:clamp(2.6rem,13vw,3.6rem);line-height:.92;letter-spacing:-.01em;margin:16px 0 10px;font-variation-settings:'opsz' 72}
+h1 small{display:block;font-style:italic;font-size:.5em;letter-spacing:0;margin-bottom:4px;color:var(--red-d)}
+h1 span{text-transform:uppercase}
+.lede{margin:0 0 16px;color:var(--muted);text-wrap:pretty;font-size:.95rem}
+.lede b{color:var(--ink)}
+.when{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 20px}
+.when > div{border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;justify-content:center;gap:2px;line-height:1.25}
+.when .d{background:var(--red);color:#fff;box-shadow:0 8px 18px rgba(147,53,56,.22)}
+.when .p{border:1.5px solid var(--red);color:var(--red)}
+.when b{font-family:var(--display);font-weight:500;font-size:1.05rem;white-space:nowrap;font-variation-settings:'opsz' 30}
+.when span{font-size:.82rem;font-weight:600}
+form{display:flex;flex-direction:column;gap:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:380px){.row,.when{grid-template-columns:1fr}}
+label.f{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.84rem;color:var(--ink)}
+label.f input{width:100%;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;font-size:16px;font-weight:500;color:var(--ink);appearance:none;-webkit-appearance:none}
+label.f input:focus{outline:none;border-color:var(--red)}
+label.f.bad input{border-color:var(--err);background:#fff5f5}
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:.82rem;color:var(--muted);cursor:pointer}
+.consent input{width:22px;height:22px;flex:0 0 22px;margin:1px 0 0;accent-color:var(--red)}
+.consent.bad{color:var(--err)}
+.err{color:var(--err);font-weight:700;font-size:.9rem;margin:0;min-height:1.2em}
+.cta{font-family:var(--body);font-weight:700;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--red);color:#fff;border:0;border-radius:14px;padding:17px 22px;cursor:pointer;box-shadow:0 10px 22px rgba(147,53,56,.3)}
+.cta:active{transform:translateY(2px)}
+.cta[disabled]{opacity:.6;cursor:wait}
+.call{margin:16px 0 0;text-align:center;font-size:.86rem;color:var(--muted)}
+.call a{color:var(--red);font-weight:700;text-decoration:none;white-space:nowrap}
+
+/* Écran de confirmation */
+.done{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0}
+.done svg{width:56px;height:56px;fill:var(--red)}
+.done h2{font-family:var(--display);font-weight:400;color:var(--red);font-size:2.2rem;line-height:1.05;margin:0;font-variation-settings:'opsz' 72}
+.done p{margin:0;color:var(--muted);max-width:34ch}
+.done p b{color:var(--ink)}
+.foot{text-align:center;color:var(--muted);font-size:.8rem;padding:18px 16px max(26px,env(safe-area-inset-bottom))}
+.foot b{display:block;color:var(--red);letter-spacing:.2em;font-size:.7rem;margin-bottom:2px}
+.foot i{font-family:var(--display);font-size:.95rem;color:var(--ink)}
+@media (prefers-reduced-motion:reduce){
+  .stage{padding:16px 0 0}
+  .flyer,.hint{display:none}
+  .hint i{animation:none}
+}
+</style>
+</head>
+<body>
+
+<section class="intro" id="intro" aria-label="Affiche de la galette des rois">
+  <div class="stage" id="stage">
+    <div class="vhprobe" id="vhprobe"></div>
+    <div class="poster" id="poster" role="img" aria-label="Affiche : Partageons la galette des rois, mardi 19 janvier 2027 à 19 h au cabinet d'orthodontie, 7 rue Frédéric Bertrand à Auxerre.">
+      <img src="/galette/img/affiche-sans-bebe.webp" alt="" width="1588" height="2246">
+      <img id="poster-full" src="/galette/img/affiche.webp" alt="" width="1588" height="2246" fetchpriority="high">
+    </div>
+    <div class="flyer" id="flyer"><img src="/galette/img/bebe.webp" alt="" width="1024" height="1536"></div>
+    <a class="hint" id="hint" href="#jouer"><span>Faites défiler pour vous inscrire <i>↓</i></span></a>
+  </div>
+</section>
+
+<section class="jeu" id="jouer"><!-- remonte par-dessus le bébé : seule sa couronne dépasse -->
+  <div class="card">
+    <div id="play">
+      <span class="kicker">✦ Épiphanie 2027 · Auxerre</span>
+      <h1><small>Partageons la</small><span>Galette<br>des rois</span></h1>
+      <p class="lede">Les docteurs <b>Mathieu Oules</b>, <b>Olivier Vinuesa</b> et <b>Olivier Setbon</b> vous invitent à fêter l’Épiphanie au cabinet. Merci de confirmer votre présence <b>avant le vendredi 8 janvier</b>.</p>
+      <div class="when">
+        <div class="d"><b>Mardi 19 janvier</b><span>2027 · à 19 h</span></div>
+        <div class="p"><b>Au cabinet</b><span>7 rue Frédéric Bertrand, 89000 Auxerre</span></div>
+      </div>
+      <form id="form" novalidate>
+        <div class="row">
+          <label class="f" data-f="prenom">Prénom<input name="prenom" autocomplete="given-name" maxlength="60" required></label>
+          <label class="f" data-f="nom">Nom<input name="nom" autocomplete="family-name" maxlength="80" required></label>
+        </div>
+        <label class="f" data-f="email">E-mail<input name="email" type="email" inputmode="email" autocomplete="email" maxlength="150" required placeholder="prenom@exemple.fr"></label>
+        <label class="f" data-f="tel">Téléphone<input name="tel" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" required placeholder="06 12 34 56 78"></label>
+        <label class="consent" data-f="consent"><input type="checkbox" name="consent" id="consent"><span>J’accepte que mes coordonnées servent uniquement à organiser cette galette des rois. Elles seront supprimées dans les 3 mois.</span></label>
+        <p class="err" id="err" role="alert"></p>
+        <button class="cta" type="submit" id="send">Je m’inscris</button>
+      </form>
+      <p class="call">Une question&nbsp;? Appelez le cabinet au <a href="tel:+33386522238">03 86 52 22 38</a></p>
+    </div>
+
+    <div class="done" id="done" hidden>
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 0 C53 35 65 47 100 50 C65 53 53 65 50 100 C47 65 35 53 0 50 C35 47 47 35 50 0Z"/></svg>
+      <h2 id="done-title">C’est noté&nbsp;!</h2>
+      <p>Votre inscription est bien enregistrée. Nous vous attendons <b>mardi 19 janvier 2027 à 19 h</b> au cabinet, 7 rue Frédéric Bertrand à Auxerre.</p>
+      <p>Un empêchement&nbsp;? Prévenez-nous au <a href="tel:+33386522238" style="color:var(--red);font-weight:700">03 86 52 22 38</a>.</p>
+    </div>
+
+    <div class="done" id="closed" hidden>
+      <h2>Les inscriptions sont closes</h2>
+      <p>Pour toute question, appelez le cabinet au <a href="tel:+33386522238" style="color:var(--red);font-weight:700">03 86 52 22 38</a>.</p>
+    </div>
+  </div>
+  <p class="foot"><b>CABINET D’ORTHODONTIE · AUXERRE</b><i>Dr Mathieu Oules · Dr Olivier Vinuesa · Dr Olivier Setbon</i></p>
+</section>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const CLOSES = Date.parse('2027-01-19T11:00:00Z');
+  const sid = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).slice(0, 36);
+  const ev = (type) => { try { navigator.sendBeacon('/api/galette/event', JSON.stringify({ type, s: sid })); } catch {} };
+  ev('view');
+
+  /* ---------- Animation au défilement ----------
+     Comme pour le nounours de Noël : l'affiche et le formulaire défilent normalement ; seul le bébé est animé.
+     Au départ, l'affiche complète est affichée ; dès qu'on défile, elle laisse la place à l'affiche sans bébé
+     et au bébé qui s'envole, grandit, pivote vers la droite puis passe sous le formulaire (seule la couronne dépasse). */
+  const jeu = $('#jouer'), poster = $('#poster'), full = $('#poster-full'), flyer = $('#flyer'), hint = $('#hint'), probe = $('#vhprobe');
+  const CROWN = .27; // part du bébé (depuis le haut) qui reste visible au-dessus du formulaire : la couronne
+  const ROT = 12;    // inclinaison finale, en degrés vers la droite
+  const GAP = .3;    // écart entre le bas de l'affiche et le haut du formulaire, en hauteur d'écran
+  const BABY = { x: -6 / 794, y: 268 / 1123, w: 560 / 794, h: 840 / 1123 }; // position du bébé dans l'affiche
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const ease = (t) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const DUR = 1000, hasST = typeof ScrollTimeline === 'function';
+  let anims = [], S = 1, lastKey = '';
+  function layout() {
+    const vw = document.documentElement.clientWidth, vh = probe.offsetHeight || innerHeight;
+    let W = Math.min(vw - (vw > 600 ? 48 : 0), (vh - (vw > 600 ? 40 : 12)) / 1.41436, 640);
+    if (vw <= 600) W = Math.min(vw, 640); // sur téléphone : l'affiche occupe toute la largeur
+    const H = W * 1.41436, L = (vw - W) / 2, T = vw > 600 ? 20 : 0;
+    poster.style.width = W + 'px'; poster.style.height = H + 'px'; poster.style.marginTop = T + 'px';
+    if (reduce) return;
+    const bw = BABY.w * W, bh = BABY.h * H;
+    flyer.style.width = bw + 'px'; flyer.style.height = bh + 'px';
+    const cardW = Math.min(520, vw - 32); // le bébé ne doit pas dépasser du formulaire sur les côtés
+    const target = Math.min(vh * .7 / bh, cardW * .8 / bw, 2.6);
+    const top = vh * .48 - (bh * target) / 2 + bh * target * CROWN;
+    const pad = parseFloat(getComputedStyle(jeu).paddingTop);
+    jeu.style.marginTop = (vh * GAP - pad) + 'px';
+    S = Math.max(vh * .3, T + H + vh * GAP - top);
+    const max = Math.max(S + 1, document.documentElement.scrollHeight - innerHeight);
+    const key = [vw, Math.round(vh), Math.round(max)].join();
+    if (key === lastKey && anims.length) return;
+    lastKey = key;
+    const x0 = L + BABY.x * W, y0 = T + BABY.y * H;
+    const pose = (p) => {
+      const m = ease(clamp((p - .02) / .9)), sc = lerp(1, target, m);
+      const cx = lerp(x0 + bw / 2, vw / 2, m), cy = lerp(y0 - p * S + bh / 2, vh * .48, m) + p * S;
+      return `translate3d(${(cx - bw / 2).toFixed(1)}px,${(cy - bh / 2).toFixed(1)}px,0) rotate(${(ROT * m).toFixed(2)}deg) scale(${sc.toFixed(4)})`;
+    };
+    const fade = (p) => clamp(p / .05); // passage de l'affiche complète au bébé détaché
+    const fb = [], fp = [];
+    for (let i = 0; i <= 40; i++) {
+      const p = i / 40, o = (p * S) / max;
+      fb.push({ offset: o, transform: pose(p), opacity: fade(p) });
+      if (p <= .1) fp.push({ offset: o, opacity: 1 - fade(p) });
+    }
+    fb.push({ offset: 1, transform: pose(1), opacity: 1 });
+    fp.push({ offset: 1, opacity: 0 });
+    anims.forEach((a) => a.cancel());
+    const opt = hasST
+      ? () => ({ duration: 'auto', fill: 'both', timeline: new ScrollTimeline({ source: document.documentElement, axis: 'block' }) })
+      : () => ({ duration: DUR, fill: 'both' });
+    anims = [flyer.animate(fb, opt()), full.animate(fp, opt())];
+    if (!hasST) { anims.forEach((a) => a.pause()); sync(); }
+  }
+  function sync() {
+    const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+    if (!hasST) anims.forEach((a) => (a.currentTime = clamp(scrollY / max) * DUR));
+  }
+  function onScroll() {
+    sync();
+    const p = scrollY / S;
+    hint.style.opacity = String(1 - clamp(p / .1));
+    hint.style.pointerEvents = p > .05 ? 'none' : '';
+  }
+  let rt = 0;
+  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(layout, 120); });
+  addEventListener('scroll', onScroll, { passive: true });
+  new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(layout, 120); }).observe(jeu);
+  layout(); onScroll();
+  window.__galette = { S: () => S, scrollTimeline: hasST };
+
+  /* ---------- Formulaire ---------- */
+  if (Date.now() >= CLOSES) { $('#play').hidden = true; $('#closed').hidden = false; }
+  let startedAt = null;
+  const form = $('#form');
+  new IntersectionObserver((es, o) => { if (es.some((e) => e.isIntersecting)) { ev('form'); o.disconnect(); } }, { threshold: .35 }).observe(form);
+  form.addEventListener('focusin', () => { if (!startedAt) { startedAt = new Date().toISOString(); ev('start'); } });
+  form.addEventListener('input', (e) => { const l = e.target.closest('[data-f]'); if (l) l.classList.remove('bad'); });
+  form.addEventListener('change', (e) => { const l = e.target.closest('[data-f]'); if (l) l.classList.remove('bad'); });
+
+  const MSG = { prenom: 'votre prénom', nom: 'votre nom', email: 'un e-mail valide', tel: 'un numéro de téléphone valide', consent: 'la case d’accord' };
+  function check(d) {
+    const bad = [];
+    if (!d.prenom) bad.push('prenom');
+    if (!d.nom) bad.push('nom');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) bad.push('email');
+    const digits = d.tel.replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 15) bad.push('tel');
+    if (!d.consent) bad.push('consent');
+    return bad;
+  }
+  function showBad(bad) {
+    document.querySelectorAll('[data-f]').forEach((l) => l.classList.toggle('bad', bad.includes(l.dataset.f)));
+    $('#err').textContent = bad.length ? `Il manque ${bad.map((k) => MSG[k]).join(', ')}.` : '';
+    document.querySelector(`[data-f="${bad[0]}"] input`)?.focus();
+  }
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const d = { prenom: (fd.get('prenom') || '').trim(), nom: (fd.get('nom') || '').trim(), email: (fd.get('email') || '').trim(), tel: (fd.get('tel') || '').trim(), consent: $('#consent').checked };
+    const bad = check(d);
+    if (bad.length) return showBad(bad);
+    showBad([]);
+    const btn = $('#send'); btn.disabled = true; btn.textContent = 'Envoi…';
+    try {
+      const r = await fetch('/api/galette/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...d, startedAt, s: sid }) });
+      const res = await r.json().catch(() => ({}));
+      if (r.status === 409 && res.already) {
+        $('#err').textContent = `Vous êtes déjà inscrit avec ${res.by === 'tel' ? 'ce numéro' : 'cet e-mail'}. À très bientôt !`;
+      } else if (r.status === 403 && res.closed) {
+        $('#play').hidden = true; $('#closed').hidden = false;
+      } else if (!r.ok) {
+        if (res.fields) showBad(res.fields); else $('#err').textContent = res.error || 'Une erreur est survenue, réessayez.';
+      } else {
+        $('#play').hidden = true; $('#done').hidden = false;
+        $('#done-title').textContent = `C’est noté, ${d.prenom} !`;
+        $('#done').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+      }
+    } catch { $('#err').textContent = 'Pas de connexion internet. Réessayez dans un instant.'; }
+    btn.disabled = false; btn.textContent = 'Je m’inscris';
+  });
+})();
+</script>
+</body>
+</html>

@@ -15,7 +15,7 @@ const FIELD_NAMES = { prenom: 'Prénom', nom: 'Nom', profession: 'Profession', c
 let session = null;
 /* Catégorie affichée dans l'admin : journée de l'orthodontie (JO) ou webinaire (Webi). */
 let CAT = 'jo';
-try { const c = localStorage.getItem('ps-cat'); CAT = c === 'webi' || c === 'noel' ? c : 'jo'; } catch {}
+try { const c = localStorage.getItem('ps-cat'); CAT = c === 'webi' || c === 'noel' || c === 'galette' ? c : 'jo'; } catch {}
 const W_COLORS = { ...PROF_COLORS, 'Kinésithérapeute maxillo-facial': '#c49bff' };
 try { session = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
 
@@ -77,12 +77,12 @@ function setCat(c, quiet) {
   CAT = c;
   try { localStorage.setItem('ps-cat', c); } catch {}
   document.querySelectorAll('#cat button').forEach((b) => { b.classList.toggle('on', b.dataset.v === c); b.setAttribute('aria-checked', String(b.dataset.v === c)); });
-  const w = c === 'webi', n = c === 'noel';
-  $('#webi-stats').hidden = !w; $('#noel-stats').hidden = !n; $('#jo-stats').hidden = w || n; $('#jo-selects').hidden = w || n;
-  $('#q').placeholder = n ? 'Rechercher un nom, un e-mail, un téléphone…' : w ? 'Rechercher un nom, une profession, une ville…' : 'Rechercher un nom, un cabinet, une ville…';
-  $('#reset-note').textContent = n ? 'Efface toutes les participations au jeu de Noël, le poids réel et les gagnants. Le webinaire et la journée de l’orthodontie ne changent pas.' : w ? 'Efface toutes les réponses au questionnaire du webinaire. Les stats de la journée de l’orthodontie ne changent pas.' : 'Efface tous les scans et tous les inscrits de la journée de l’orthodontie (par exemple après les essais). Le webinaire et les codes des ambassadeurs ne changent pas.';
-  $('#sort option[value=dept]').textContent = n ? 'Plus justes d’abord' : 'Département';
-  $('#export').textContent = n ? 'Exporter le jeu de Noël en Excel' : w ? 'Exporter le webinaire en Excel' : 'Exporter tout en Excel';
+  const w = c === 'webi', n = c === 'noel', g = c === 'galette';
+  $('#webi-stats').hidden = !w; $('#noel-stats').hidden = !n; $('#galette-stats').hidden = !g; $('#jo-stats').hidden = w || n || g; $('#jo-selects').hidden = w || n || g;
+  $('#q').placeholder = n || g ? 'Rechercher un nom, un e-mail, un téléphone…' : w ? 'Rechercher un nom, une profession, une ville…' : 'Rechercher un nom, un cabinet, une ville…';
+  $('#reset-note').textContent = g ? 'Efface toutes les inscriptions à la galette des rois. Les autres catégories ne changent pas.' : n ? 'Efface toutes les participations au jeu de Noël, le poids réel et les gagnants. Le webinaire et la journée de l’orthodontie ne changent pas.' : w ? 'Efface toutes les réponses au questionnaire du webinaire. Les stats de la journée de l’orthodontie ne changent pas.' : 'Efface tous les scans et tous les inscrits de la journée de l’orthodontie (par exemple après les essais). Le webinaire et les codes des ambassadeurs ne changent pas.';
+  $('#sort option[value=dept]').textContent = n ? 'Plus justes d’abord' : g ? 'Nom' : 'Département';
+  $('#export').textContent = g ? 'Exporter les inscrits à la galette en Excel' : n ? 'Exporter le jeu de Noël en Excel' : w ? 'Exporter le webinaire en Excel' : 'Exporter tout en Excel';
   mapFitted = false;
   drawQR();
   if (!quiet) render();
@@ -100,12 +100,13 @@ panes.addEventListener('scroll', () => {
 
 /* ---------- QR code ---------- */
 const isNoelQR = () => !!session?.admin && CAT === 'noel';
-function myUrl() { return isNoelQR() ? `${location.origin}/noel` : `${location.origin}/s/${session.id}`; }
+const isGaletteQR = () => !!session?.admin && CAT === 'galette';
+function myUrl() { return isNoelQR() ? `${location.origin}/noel` : isGaletteQR() ? `${location.origin}/galette` : `${location.origin}/s/${session.id}`; }
 function drawQR() {
   if (!session) return;
-  const n = isNoelQR();
-  $('.qr-panda').hidden = n; $('.qr-bear').hidden = !n; $('.qr-offer').hidden = n;
-  $('.qr-card').classList.toggle('noel', n);
+  const n = isNoelQR(), g = isGaletteQR();
+  $('.qr-panda').hidden = n || g; $('.qr-bear').hidden = !n; $('.qr-crown').hidden = !g; $('.qr-offer').hidden = n || g;
+  $('.qr-card').classList.toggle('noel', n); $('.qr-card').classList.toggle('galette', g);
   const qr = qrcode(0, 'H'); qr.addData(myUrl()); qr.make();
   $('#qr').innerHTML = qr.createSvgTag({ cellSize: 8, margin: 0, scalable: true });
   const svg = $('#qr svg'); svg.querySelectorAll('path').forEach((p) => p.setAttribute('fill', '#0b0f19'));
@@ -203,6 +204,7 @@ function render() {
   if (!DATA) return;
   if (CAT === 'webi') { renderWebi(); renderLeads(); renderMap(); return; }
   if (CAT === 'noel') { renderNoel(); renderLeads(); renderMap(); return; }
+  if (CAT === 'galette') { renderGalette(); renderLeads(); renderMap(); return; }
   const { scans, events, leads } = filtered();
   const uniq = new Set(scans.map((s) => s.vid)).size;
   const starts = new Set(events.filter((e) => e.type === 'start').map((e) => e.s || e.id)).size;
@@ -308,6 +310,7 @@ function renderLeads() {
   if (!DATA) return;
   if (CAT === 'webi') return renderWebiLeads();
   if (CAT === 'noel') return renderNoelLeads();
+  if (CAT === 'galette') return renderGaletteLeads();
   const q = $('#q').value.trim().toLowerCase();
   let rows = filtered().leads.filter((l) => !q || [l.prenom, l.nom, l.cabinet, l.adresse, l.email, l.tel, l.geo?.city, l.profession, nameOf(l.a)].join(' ').toLowerCase().includes(q));
   const s = $('#sort').value;
@@ -331,6 +334,14 @@ async function adminPost(body) {
 $('#leads').addEventListener('click', async (e) => {
   const pk = e.target.closest('.pick-noel');
   if (pk) { if (!pk.disabled) await onPick(pk); return; }
+  const gb = e.target.closest('.del-galette');
+  if (gb) {
+    if (!armed(gb, 'Appuie encore pour supprimer définitivement')) return;
+    gb.disabled = true; gb.textContent = 'Suppression…';
+    if (await adminPost({ galetteId: gb.dataset.id, t: gb.dataset.t })) { DATA.galette = DATA.galette.filter((x) => x.id !== gb.dataset.id); render(); load(); }
+    else { gb.disabled = false; gb.textContent = 'Échec, réessaie'; }
+    return;
+  }
   const nb = e.target.closest('.del-noel');
   if (nb) {
     if (!armed(nb, 'Appuie encore pour supprimer définitivement')) return;
@@ -390,6 +401,7 @@ function renderMap(fit) {
   setTimeout(() => map.invalidateSize(), 50);
   layer.clearLayers();
   if (CAT === 'noel') { $('#legend').innerHTML = '<b>Jeu de Noël</b><small>Pas de carte : le jeu ne demande pas d’adresse.</small>'; return; }
+  if (CAT === 'galette') { $('#legend').innerHTML = '<b>Galette des rois</b><small>Pas de carte : l’inscription ne demande pas d’adresse.</small>'; return; }
   const leads = mapItems().filter((l) => l.geo?.lat);
   const COL = CAT === 'webi' ? W_COLORS : PROF_COLORS;
   const z = map.getZoom();
@@ -445,6 +457,7 @@ $('#export').addEventListener('click', () => {
   if (!DATA || !window.XLSX) return;
   if (CAT === 'webi') return exportWebi();
   if (CAT === 'noel') return exportNoel();
+  if (CAT === 'galette') return exportGalette();
   const { scans, events, leads } = filtered();
   const wb = XLSX.utils.book_new();
   const add = (name, rows, widths) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Aucune donnée' }]); if (rows.length) ws['!autofilter'] = { ref: ws['!ref'] }; if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
@@ -473,7 +486,7 @@ function webiFiltered() {
   return { answers: (DATA.webi || []).filter(inP).sort((a, b) => b.t.localeCompare(a.t)), events: (DATA.webiEvents || []).filter(inP) };
 }
 function mapItems() {
-  if (CAT === 'noel') return [];
+  if (CAT === 'noel' || CAT === 'galette') return [];
   if (CAT !== 'webi') return filtered().leads;
   return webiFiltered().answers.map((r) => ({ prenom: r.name, nom: '', profession: r.profession, cabinet: '', geo: r.geo, adresse: r.postcode, a: '', src: 'Webinaire · note ' + r.rating + '/5' }));
 }
@@ -713,6 +726,55 @@ function exportNoel() {
   add('Historique', (st.history || []).map((h) => ({ 'Date et heure': dt(h.t), Action: h.what })), [18, 70]);
   const stamp = new Date().toLocaleString('fr-FR', { timeZone: TZ }).replace(/[/:]/g, '-').replace(/\s/g, '_');
   XLSX.writeFile(wb, `PandaSmile_jeu_noel_${stamp}.xlsx`);
+}
+
+/* ---------- Galette des rois ---------- */
+function galetteAll() { return (DATA.galette || []).slice().sort((a, b) => b.t.localeCompare(a.t)); }
+function galetteFiltered() {
+  const from = since();
+  const inP = (x) => Date.parse(x.t) >= from;
+  return { regs: galetteAll().filter(inP), events: (DATA.galetteEvents || []).filter(inP) };
+}
+function renderGalette() {
+  const { regs, events } = galetteFiltered();
+  const sess = (t) => new Set(events.filter((e) => e.type === t).map((e) => e.s || e.id)).size;
+  $('#g-kpis').innerHTML = [
+    [regs.length, 'Inscrits', 'hl'],
+    [galetteAll().length, 'Inscrits (total)'],
+    [sess('view'), 'Pages ouvertes'],
+    [pct(regs.length, sess('view')) + ' %', 'Conversion (inscrits / pages)'],
+  ].map(([v, l, c]) => `<div class="kpi ${c || ''}"><b>${v}</b><span>${l}</span></div>`).join('');
+  const steps = [['Page ouverte', sess('view')], ['Formulaire atteint', sess('form')], ['Formulaire commencé', sess('start')], ['Inscription envoyée', regs.length]];
+  const top = Math.max(1, ...steps.map((x) => x[1]));
+  $('#g-funnel').innerHTML = steps.map(([l, v], i) => `<div class="fstep"><span>${l}</span><span class="t"><i style="width:${Math.max(2, (v / top) * 100)}%"></i></span><span class="v">${v}${i && steps[i - 1][1] ? ` <small>${pct(v, steps[i - 1][1])} %</small>` : ''}</span></div>`).join('');
+  bars('#g-day', count(regs, (r) => new Date(r.t).toLocaleDateString('fr-FR', { timeZone: TZ, weekday: 'short', day: '2-digit', month: '2-digit' })), null, 10, 'Pas encore d’inscription.');
+  bars('#g-os', count(regs, (r) => r.os || 'Autre'), null, 6, 'Pas encore d’inscription.');
+  $('#g-feed').innerHTML = regs.length ? regs.slice(0, 15).map((r) => `<li><time>${hhmm(r.t)}</time><span><b>${esc(r.prenom)} ${esc(r.nom)}</b> · ${esc(r.tel)}</span><span class="tag ok">Inscrit</span></li>`).join('') : '<li class="muted">Aucune inscription sur cette période.</li>';
+}
+$('#g-see').addEventListener('click', goLeads);
+function renderGaletteLeads() {
+  const q = $('#q').value.trim().toLowerCase();
+  let rows = galetteFiltered().regs.filter((r) => !q || [r.prenom, r.nom, r.email, r.tel].join(' ').toLowerCase().includes(q));
+  const s = $('#sort').value;
+  rows.sort(s === 'old' ? (a, b) => a.t.localeCompare(b.t) : s === 'name' || s === 'dept' ? (a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr') : (a, b) => b.t.localeCompare(a.t));
+  $('#leads-count').textContent = `${rows.length} inscrit${rows.length > 1 ? 's' : ''} à la galette des rois${F.period !== 'all' ? ' sur la période' : ''}`;
+  const dd = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
+  $('#leads').innerHTML = rows.length ? rows.map((r) => `<li><details class="lead"><summary><span class="pdot" style="background:#d9a441"></span><span class="nm">${esc(r.prenom)} ${esc(r.nom)}</span><span class="when">${frDate(r.t)}</span><span class="sub">${esc(r.tel)} · ${esc(r.email)}</span></summary>
+    <dl>${dd('E-mail', r.email)}${dd('Téléphone', r.tel)}${dd('Téléphone utilisé', [r.device, r.os].filter(Boolean).join(' · '))}${dd('Rempli en', Number.isFinite(r.durationSec) ? r.durationSec + ' s' : '')}</dl>
+    <p class="pick"><a class="btn" href="tel:${esc(r.tel.replace(/[^\d+]/g, ''))}">Appeler</a> <a class="btn" href="mailto:${esc(r.email)}">Écrire</a></p>
+    <button type="button" class="del del-galette" data-id="${esc(r.id)}" data-t="${esc(r.t)}">Supprimer cette inscription</button></details></li>`).join('') : '<li class="muted">Aucune inscription pour l’instant.</li>';
+}
+function exportGalette() {
+  const { regs } = galetteFiltered();
+  const wb = XLSX.utils.book_new();
+  const dt = (t) => new Date(t).toLocaleString('fr-FR', { timeZone: TZ });
+  const rows = regs.slice().sort((a, b) => a.nom.localeCompare(b.nom, 'fr')).map((r) => ({ Nom: r.nom, Prénom: r.prenom, 'E-mail': r.email, Téléphone: r.tel, 'Inscrit le': dt(r.t) }));
+  const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Aucune donnée' }]);
+  if (rows.length) ws['!autofilter'] = { ref: ws['!ref'] };
+  ws['!cols'] = [16, 14, 30, 16, 18].map((w) => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Inscrits');
+  const stamp = new Date().toLocaleString('fr-FR', { timeZone: TZ }).replace(/[/:]/g, '-').replace(/\s/g, '_');
+  XLSX.writeFile(wb, `PandaSmile_galette_des_rois_${stamp}.xlsx`);
 }
 
 /* ---------- Démarrage ---------- */

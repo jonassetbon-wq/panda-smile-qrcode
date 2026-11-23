@@ -38,7 +38,7 @@
   <header class="head">
     <img class="head-logo" src="/img/logo.webp" alt="PandaSmile" width="900" height="279">
     <nav class="tabs" id="tabs" role="tablist"></nav>
-    <div class="cat" id="cat" role="radiogroup" aria-label="Catégorie" hidden><button type="button" data-v="jo" title="Journée de l’orthodontie">JO</button><button type="button" data-v="webi" title="Webinaire">Webi</button><button type="button" data-v="noel" title="Jeu concours de Noël">Noël</button></div>
+    <div class="cat" id="cat" role="radiogroup" aria-label="Catégorie" hidden><button type="button" data-v="jo" title="Journée de l’orthodontie">JO</button><button type="button" data-v="webi" title="Webinaire">Webi</button><button type="button" data-v="noel" title="Jeu concours de Noël">Noël</button><button type="button" data-v="galette" title="Galette des rois 2027">Galette</button></div>
     <span class="me"><b id="me-name"></b><button type="button" id="logout" class="out">Quitter</button></span>
   </header>
   <div class="panes" id="panes">
@@ -46,7 +46,7 @@
     <section class="pane" id="pane-qr" aria-label="QR code">
       <div class="qr-wrap">
         <p class="qr-hello">Bonjour <b id="qr-name"></b></p>
-        <div class="qr-card"><div id="qr"></div><img class="qr-panda" src="/img/icon.png" alt=""><div class="qr-bear" hidden><div class="qr-disc"><img src="/noel/img/nounours-qr.webp" alt=""></div><img class="qr-pop" src="/noel/img/nounours-qr.webp" alt="Nounours"></div></div>
+        <div class="qr-card"><div id="qr"></div><img class="qr-panda" src="/img/icon.png" alt=""><div class="qr-bear" hidden><div class="qr-disc"><img src="/noel/img/nounours-qr.webp" alt=""></div><img class="qr-pop" src="/noel/img/nounours-qr.webp" alt="Nounours"></div><div class="qr-crown" hidden><svg viewBox="0 0 64 48" aria-label="Couronne"><path d="M6 40 L3 12 L18 24 L32 4 L46 24 L61 12 L58 40 Z" fill="#f2c75c" stroke="#a8762c" stroke-width="2.5" stroke-linejoin="round"/><rect x="6" y="38" width="52" height="7" rx="2" fill="#d9a441" stroke="#a8762c" stroke-width="2"/><circle cx="32" cy="4" r="3.4" fill="#f2c75c" stroke="#a8762c" stroke-width="2"/><circle cx="3" cy="12" r="3" fill="#f2c75c" stroke="#a8762c" stroke-width="2"/><circle cx="61" cy="12" r="3" fill="#f2c75c" stroke="#a8762c" stroke-width="2"/></svg></div></div>
         <p class="qr-offer"><strong>3 mois de PandaSmile offerts</strong>Faites scanner ce code aux praticiens</p>
         <p class="qr-link"><span id="qr-url"></span><button type="button" id="copy" class="mini">Copier</button></p>
         <p class="qr-hint" id="swipe-hint" hidden>Glisse vers la gauche pour voir les stats en direct →</p>
@@ -111,6 +111,16 @@
             <article class="block"><h2>Téléphones</h2><div id="n-os" class="bars"></div></article>
           </div>
           <article class="block"><h2>Dernières participations</h2><ul class="feed" id="n-feed"></ul></article>
+        </div>
+        <div id="galette-stats" hidden>
+          <div class="kpis" id="g-kpis"></div>
+          <button type="button" class="cta ghost" id="g-see">Voir les inscrits</button>
+          <article class="block"><h2>Entonnoir</h2><div id="g-funnel" class="funnel"></div></article>
+          <div class="duo">
+            <article class="block"><h2>Inscriptions par jour</h2><div id="g-day" class="bars"></div></article>
+            <article class="block"><h2>Téléphones</h2><div id="g-os" class="bars"></div></article>
+          </div>
+          <article class="block"><h2>Dernières inscriptions</h2><ul class="feed" id="g-feed"></ul></article>
         </div>
         <div id="jo-stats">
         <div class="kpis" id="kpis"></div>
