@@ -7,7 +7,8 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="/img/icon.png">
 <title>Galette des rois · Inscription</title>
-<link rel="preload" href="/galette/img/affiche.webp" as="image">
+<link rel="preload" href="/galette/img/affiche-fond.webp" as="image">
+<link rel="preload" href="/galette/img/bebe.webp" as="image">
 <link rel="stylesheet" href="/galette/fonts.css">
 <style>
 /* Même direction artistique que l'affiche : crème, rouge brique, Bodoni Moda (titres) + Montserrat (texte). */
@@ -28,10 +29,12 @@ button,input{font:inherit;color:inherit}
 .vhprobe{position:absolute;top:0;left:0;width:1px;height:100svh;visibility:hidden;pointer-events:none}
 .poster{position:relative;margin:0 auto;overflow:hidden;background:var(--bg)}
 @media (min-width:601px){.poster{box-shadow:0 30px 60px rgba(74,35,36,.18);border-radius:4px}}
-.poster img{position:absolute;inset:0;display:block;width:100%;height:100%}
-.flyer{position:absolute;left:0;top:0;transform-origin:50% 50%;will-change:transform,opacity;backface-visibility:hidden;pointer-events:none;z-index:3;opacity:0}
-.flyer img{display:block;width:100%;height:100%}
-.hint{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:4;
+.poster img,.over img{position:absolute;inset:0;display:block;width:100%;height:100%}
+/* Calque du dessus de l'affiche (encadrés, bloc inscription, bandeau) : le bébé passe dessous, comme sur l'affiche. */
+.over{position:absolute;left:0;top:0;z-index:4;pointer-events:none}
+.flyer{position:absolute;left:0;top:0;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden;pointer-events:none;z-index:3}
+.flyer img{display:block;width:100%;height:100%;filter:drop-shadow(0 calc(var(--k,1) * 18px) calc(var(--k,1) * 22px) rgba(90,42,43,.16))}
+.hint{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:5;
   display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:700;font-size:.92rem;letter-spacing:.02em;text-align:center;white-space:nowrap;text-decoration:none;transition:opacity .3s}
 .hint span{display:inline-flex;align-items:center;gap:8px;background:var(--red);color:#fff;border-radius:999px;padding:10px 18px;box-shadow:0 8px 20px rgba(147,53,56,.35)}
 .hint i{font-style:normal;animation:bob 1.4s ease-in-out infinite}
@@ -92,10 +95,10 @@ label.f.bad input{border-color:var(--err);background:#fff5f5}
   <div class="stage" id="stage">
     <div class="vhprobe" id="vhprobe"></div>
     <div class="poster" id="poster" role="img" aria-label="Affiche : Partageons la galette des rois, mardi 19 janvier 2027 à 19 h au cabinet d'orthodontie, 7 rue Frédéric Bertrand à Auxerre.">
-      <img src="/galette/img/affiche-sans-bebe.webp" alt="" width="1588" height="2246">
-      <img id="poster-full" src="/galette/img/affiche.webp" alt="" width="1588" height="2246" fetchpriority="high">
+      <img src="/galette/img/affiche-fond.webp" alt="" width="1588" height="2246" fetchpriority="high">
     </div>
     <div class="flyer" id="flyer"><img src="/galette/img/bebe.webp" alt="" width="1024" height="1536"></div>
+    <div class="over" id="over"><img src="/galette/img/affiche-dessus.webp" alt="" width="1588" height="2246"></div>
     <a class="hint" id="hint" href="#jouer"><span>Faites défiler pour vous inscrire <i>↓</i></span></a>
   </div>
 </section>
@@ -149,9 +152,10 @@ label.f.bad input{border-color:var(--err);background:#fff5f5}
 
   /* ---------- Animation au défilement ----------
      Comme pour le nounours de Noël : l'affiche et le formulaire défilent normalement ; seul le bébé est animé.
-     Au départ, l'affiche complète est affichée ; dès qu'on défile, elle laisse la place à l'affiche sans bébé
-     et au bébé qui s'envole, grandit, pivote vers la droite puis passe sous le formulaire (seule la couronne dépasse). */
-  const jeu = $('#jouer'), poster = $('#poster'), full = $('#poster-full'), flyer = $('#flyer'), hint = $('#hint'), probe = $('#vhprobe');
+     L'affiche est en deux calques (fond, et dessus : encadrés, bloc inscription, bandeau) ; le bébé, toujours opaque,
+     est entre les deux, à sa place exacte. Il s'envole, grandit, pivote vers la droite puis passe sous le formulaire
+     (seule la couronne dépasse). */
+  const jeu = $('#jouer'), poster = $('#poster'), over = $('#over'), flyer = $('#flyer'), hint = $('#hint'), probe = $('#vhprobe');
   const CROWN = .27; // part du bébé (depuis le haut) qui reste visible au-dessus du formulaire : la couronne
   const ROT = 12;    // inclinaison finale, en degrés vers la droite
   const GAP = .3;    // écart entre le bas de l'affiche et le haut du formulaire, en hauteur d'écran
@@ -160,6 +164,7 @@ label.f.bad input{border-color:var(--err);background:#fff5f5}
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
   const ease = (t) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   const lerp = (a, b, t) => a + (b - a) * t;
+  const soft = (t) => (1 - Math.cos(Math.PI * t)) / 2; // départ et arrivée en douceur
   const DUR = 1000, hasST = typeof ScrollTimeline === 'function';
   let anims = [], S = 1, lastKey = '';
   function layout() {
@@ -168,6 +173,8 @@ label.f.bad input{border-color:var(--err);background:#fff5f5}
     if (vw <= 600) W = Math.min(vw, 640); // sur téléphone : l'affiche occupe toute la largeur
     const H = W * 1.41436, L = (vw - W) / 2, T = vw > 600 ? 20 : 0;
     poster.style.width = W + 'px'; poster.style.height = H + 'px'; poster.style.marginTop = T + 'px';
+    Object.assign(over.style, { left: L + 'px', top: T + 'px', width: W + 'px', height: H + 'px' });
+    flyer.style.setProperty('--k', (W / 794).toFixed(3));
     if (reduce) return;
     const bw = BABY.w * W, bh = BABY.h * H;
     flyer.style.width = bw + 'px'; flyer.style.height = bh + 'px';
@@ -183,24 +190,20 @@ label.f.bad input{border-color:var(--err);background:#fff5f5}
     lastKey = key;
     const x0 = L + BABY.x * W, y0 = T + BABY.y * H;
     const pose = (p) => {
-      const m = ease(clamp((p - .02) / .9)), sc = lerp(1, target, m);
-      const cx = lerp(x0 + bw / 2, vw / 2, m), cy = lerp(y0 - p * S + bh / 2, vh * .48, m) + p * S;
+      // Le bébé quitte l'affiche tout de suite et glisse d'un seul mouvement vers le centre (sans remonter avec l'affiche).
+      const m = soft(clamp(p / .92)), sc = lerp(1, target, m);
+      const cx = lerp(x0 + bw / 2, vw / 2, m), cy = lerp(y0 + bh / 2, vh * .48, m) + p * S;
       return `translate3d(${(cx - bw / 2).toFixed(1)}px,${(cy - bh / 2).toFixed(1)}px,0) rotate(${(ROT * m).toFixed(2)}deg) scale(${sc.toFixed(4)})`;
     };
-    const fade = (p) => clamp(p / .05); // passage de l'affiche complète au bébé détaché
-    const fb = [], fp = [];
-    for (let i = 0; i <= 40; i++) {
-      const p = i / 40, o = (p * S) / max;
-      fb.push({ offset: o, transform: pose(p), opacity: fade(p) });
-      if (p <= .1) fp.push({ offset: o, opacity: 1 - fade(p) });
-    }
-    fb.push({ offset: 1, transform: pose(1), opacity: 1 });
-    fp.push({ offset: 1, opacity: 0 });
+    const fb = [];
+    for (let i = 0; i <= 48; i++) { const p = i / 48; fb.push({ offset: (p * S) / max, transform: pose(p) }); }
+    fb.push({ offset: 1, transform: pose(1) });
     anims.forEach((a) => a.cancel());
     const opt = hasST
       ? () => ({ duration: 'auto', fill: 'both', timeline: new ScrollTimeline({ source: document.documentElement, axis: 'block' }) })
       : () => ({ duration: DUR, fill: 'both' });
-    anims = [flyer.animate(fb, opt()), full.animate(fp, opt())];
+    anims = [flyer.animate(fb, opt())];
+    flyer.style.transform = pose(clamp(scrollY / S)); // position de départ même avant que l'animation tourne
     if (!hasST) { anims.forEach((a) => a.pause()); sync(); }
   }
   function sync() {
